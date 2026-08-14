@@ -1,0 +1,93 @@
+# agent-linters
+
+> Rewrites linter output as short, imperative prompts, so a coding agent gets
+> an instruction ("remove unused import `os`") instead of a screenful of
+> diagnostics. Works at the tool layer — env vars, user-level config, two
+> PATH shims — so it applies to any agent that shells out to a linter
+> (Claude Code, Codex, or anything else) without configuring each one
+> separately. POSIX `sh` + stdlib-only Python 3. No build, no test suite, no
+> runtime dependencies. MIT licensed.
+
+## Entry point
+
+- `bin/lintp` — the CLI. Routes files by extension, runs the applicable
+  linters, and prints one line per finding: `path:line  imperative sentence`.
+
+  Routing table:
+  | Extensions | Linter(s) |
+  |---|---|
+  | `.py .pyi` | ruff + mypy |
+  | `.js .mjs .cjs .jsx .ts .tsx .mts .cts` | oxlint |
+  | `.css .scss .json .jsonc` | biome |
+
+  biome also lints JS/TS internally, but those findings are dropped — oxlint
+  owns that ground, so a file never gets two conflicting prompts for the same
+  problem.
+
+  Flags: `--fix` (apply safe autofixes first, then report what remains),
+  `--codes` (append the rule code to each line), `--strict` (add oxlint's
+  `pedantic` and `style` categories), `--tools ruff,mypy,oxlint,biome` (run a
+  subset).
+
+  Exit codes: `0` clean (nothing found), `1` findings printed, `2` a linter
+  itself failed to run.
+
+  A project's own config always wins. ruff, mypy and biome each search
+  upward for their own config file and `lintp` never touches that search.
+  oxlint is the exception — it only checks the cwd — so `lintp` locates the
+  nearest `.oxlintrc.json` (or `oxlint.json`/`.oxlintrc`) itself and passes it
+  with `-c`, rather than forcing its own category flags on top of it.
+
+## Rule phrasing tables
+
+The imperative wording lives in four dicts near the top of `bin/lintp`, each
+keyed by the linter's own rule code and mapping to a `(regex, template)` pair
+(or an ordered list of them) that extracts values out of the linter's message
+and renders the instruction:
+
+- `RUFF_RULES` — Python, e.g. `F401` → "remove unused import `{name}`".
+- `MYPY_RULES` — Python types, e.g. `return-value` → "return {want}, not {got}".
+- `OXLINT_RULES` — JS/TS, eslint-style rule names, e.g. `jsx-key` → "add a
+  `key` prop to the list element".
+- `BIOME_RULES` — CSS/JSON. Rules absent from this table still get a
+  camelCase-derived phrase (`noDescendingSpecificity` → "avoid descending
+  specificity") rather than biome's longer explanatory sentence.
+
+Any rule code absent from all four tables falls through to the linter's own
+message text unchanged — nothing is ever swallowed; a missing entry degrades
+gracefully instead of breaking.
+
+## Shims
+
+- `shims/mypy` — POSIX `sh` wrapper. Injects `--no-error-summary` (no env var
+  exists for it) and gives each working directory its own `MYPY_CACHE_DIR`
+  under `$XDG_CACHE_HOME` (default `~/.cache/mypy/<hash-of-cwd>`), so two
+  projects with same-named modules (`utils.py`, `main.py`) never collide in
+  one cache. `exec`s the real `mypy` found by walking `PATH` past itself, so
+  exit codes pass through untouched.
+- `shims/biome` — POSIX `sh` wrapper. Injects `--reporter=concise` for the
+  `lint`, `check` and `ci` subcommands only (no env var or config key exists
+  for biome's reporter); a caller-supplied `--reporter` makes it step aside.
+
+## Install
+
+`install.sh` symlinks `bin/`, `shims/` and `config/` into `~/.local` and
+`~/.config`, and adds one `source` line to `~/.profile` and
+`~/.config/fish/config.fish`. `--claude` additionally patches
+`~/.claude/settings.json`'s `env` block via `jq`. `--uninstall` reverses all
+of it, restoring any backed-up file. Re-running is idempotent.
+
+## Requirements
+
+POSIX `sh`, Python 3.8+, and whichever of ruff, mypy, oxlint, biome you use —
+none are bundled. Linux and macOS.
+
+## Full documentation
+
+- [README.md](README.md) — install steps, the full trap list, and worked
+  examples of generic linter advice that was wrong for a real codebase.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to add a rule phrasing, style
+  requirements, PR checklist.
+- [SECURITY.md](SECURITY.md) — actual threat surface (writes into `$HOME`,
+  shims ahead of real binaries on `PATH`, `--claude`'s settings patch) and how
+  to report an issue.

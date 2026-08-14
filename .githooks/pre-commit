@@ -1,0 +1,86 @@
+#!/bin/sh
+# agent-linters pre-commit hook.
+#
+# Fast, staged-only checks:
+#   1. reject a leaked absolute dev-machine home path or an unfilled owner placeholder
+#   2. `sh -n` (or `fish -n`) every staged shell file, so a syntax error never lands
+#   3. `ruff check` + `mypy` on bin/lintp, but only if those tools are on PATH —
+#      a contributor without them installed must still be able to commit
+#
+# Install with ./scripts/install-hooks.sh. Bypass with `git commit --no-verify`.
+set -eu
+
+fail=0
+note() { printf 'pre-commit: %s\n' "$1" >&2; }
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+staged=$(mktemp)
+trap 'rm -f "$staged"' EXIT
+git diff --cached --name-only --diff-filter=ACMR > "$staged"
+
+[ -s "$staged" ] || exit 0
+
+# ── Guard 1: forbidden strings in staged content ─────────────────────────────
+# Needles are built from concatenated parts so this hook's own source never
+# contains the contiguous string it is scanning for (it would otherwise flag
+# itself the moment it is staged).
+owner_placeholder='<OWNE''R>'
+leaked_home='/home/age''nt'
+
+while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    blob=$(git show ":$f" 2>/dev/null) || continue
+    if printf '%s\n' "$blob" | grep -a -qF "$owner_placeholder"; then
+        note "staged file '$f' still has an unfilled $owner_placeholder placeholder"
+        fail=1
+    fi
+    if printf '%s\n' "$blob" | grep -a -qF "$leaked_home"; then
+        note "staged file '$f' contains a hardcoded $leaked_home path"
+        fail=1
+    fi
+done < "$staged"
+
+# ── Guard 2: shell syntax on every staged shell file ─────────────────────────
+while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    case "$f" in
+        *.sh)
+            sh -n "$f" || { note "sh -n failed: $f"; fail=1; }
+            ;;
+        *.fish)
+            if command -v fish >/dev/null 2>&1; then
+                fish -n "$f" || { note "fish -n failed: $f"; fail=1; }
+            else
+                note "skip: fish not on PATH, cannot syntax-check $f"
+            fi
+            ;;
+        *)
+            first_line=$(head -n1 -- "$f" 2>/dev/null || true)
+            case "$first_line" in
+                '#!/bin/sh' | '#!/usr/bin/env sh')
+                    sh -n "$f" || { note "sh -n failed: $f"; fail=1; }
+                    ;;
+            esac
+            ;;
+    esac
+done < "$staged"
+
+# ── Guard 3: ruff + mypy on bin/lintp, only if the tools are installed ──────
+if grep -qx 'bin/lintp' "$staged"; then
+    if command -v ruff >/dev/null 2>&1; then
+        ruff check bin/lintp || fail=1
+    else
+        note "skip: ruff not on PATH (install: uv tool install ruff)"
+    fi
+    if command -v mypy >/dev/null 2>&1; then
+        mypy_cache=$(mktemp -d)
+        MYPY_CACHE_DIR="$mypy_cache" mypy bin/lintp || fail=1
+        rm -rf "$mypy_cache"
+    else
+        note "skip: mypy not on PATH (install: uv tool install mypy)"
+    fi
+fi
+
+exit $fail

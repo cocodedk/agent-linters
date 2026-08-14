@@ -1,7 +1,16 @@
 # agent-linters
 
+[![CI](https://github.com/cocodedk/agent-linters/actions/workflows/ci.yml/badge.svg)](https://github.com/cocodedk/agent-linters/actions/workflows/ci.yml)
+[![Pages](https://github.com/cocodedk/agent-linters/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/cocodedk/agent-linters/actions/workflows/deploy-pages.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Linter output rewritten as short, imperative prompts, so a coding agent gets an
 instruction instead of a screenful of diagnostics.
+
+## Website
+
+- [English](https://cocodedk.github.io/agent-linters/)
+- [فارسی (Persian)](https://cocodedk.github.io/agent-linters/fa/)
 
 ```
 $ lintp src/
@@ -75,7 +84,7 @@ prompts are worse than none.
 
 Exit codes: `0` clean, `1` findings, `2` a linter failed to run.
 
-Roughly fifty rules have a hand-written phrasing (`F401` → "remove unused import `os`",
+Seventy-plus rules have a hand-written phrasing (`F401` → "remove unused import `os`",
 `jsx-key` → "add a `key` prop to the list element", `return-value` → "return str, not
 int"). Unmapped biome rules are turned into an instruction from the rule name
 (`noDescendingSpecificity` → "avoid descending specificity"), which reads better than

@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<!-- SEO keywords:
+     primary:   linter output for coding agents
+     secondary: concise ruff output, lintp, agent context window
+     intent:    informational (how to stop linter noise reaching an agent)
+-->
+
+<title>agent-linters: one-line linter output for coding agents</title>
+<meta name="description" content="Linter output rewritten as one imperative line per finding, so a coding agent reads an instruction instead of code frames. Four linters behind one command." />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://cocodedk.github.io/agent-linters/" />
+<link rel="alternate" hreflang="en" href="https://cocodedk.github.io/agent-linters/" />
+<link rel="alternate" hreflang="fa" href="https://cocodedk.github.io/agent-linters/fa/" />
+<link rel="alternate" hreflang="x-default" href="https://cocodedk.github.io/agent-linters/" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="agent-linters" />
+<meta property="og:title" content="agent-linters: linter output your coding agent can afford" />
+<meta property="og:description" content="ruff and mypy spend 31 lines on three findings. lintp spends 5. One imperative line per finding, for Python, JS/TS, CSS and JSON." />
+<meta property="og:url" content="https://cocodedk.github.io/agent-linters/" />
+<meta property="og:image" content="https://cocodedk.github.io/agent-linters/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Two rulers on bone paper: a long ochre one marked 31 lines, a short blue one marked 5 lines, beside the name agent-linters." />
+<meta property="og:locale" content="en_US" />
+<meta property="og:locale:alternate" content="fa_IR" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="agent-linters: linter output your coding agent can afford" />
+<meta name="twitter:description" content="ruff and mypy spend 31 lines on three findings. lintp spends 5. One imperative line per finding, for Python, JS/TS, CSS and JSON." />
+<meta name="twitter:image" content="https://cocodedk.github.io/agent-linters/og.png" />
+<meta name="twitter:image:alt" content="Two rulers on bone paper: a long ochre one marked 31 lines, a short blue one marked 5 lines, beside the name agent-linters." />
+
+<link rel="stylesheet" href="styles.css" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "agent-linters",
+  "description": "A command-line wrapper that rewrites ruff, mypy, oxlint and biome output as one short imperative line per finding, so a coding agent reads an instruction instead of a code frame.",
+  "url": "https://cocodedk.github.io/agent-linters/",
+  "downloadUrl": "https://github.com/cocodedk/agent-linters",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Linux, macOS",
+  "license": "https://github.com/cocodedk/agent-linters/blob/main/LICENSE",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "inLanguage": ["en", "fa"],
+  "author": {
+    "@type": "Person",
+    "name": "Babak Bandpey",
+    "url": "https://cocode.dk",
+    "sameAs": [
+      "https://linkedin.com/in/babakbandpey",
+      "https://github.com/cocodedk"
+    ]
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Cocode",
+    "url": "https://cocode.dk"
+  },
+  "codeRepository": "https://github.com/cocodedk/agent-linters"
+}
+</script>
+</head>
+
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-head">
+  <div class="wrap head-in">
+    <a class="brand" href="./">
+      <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect width="32" height="32" rx="6" fill="#f4f2ed" />
+        <g fill="#c98a1e">
+          <rect x="6" y="6" width="20" height="3" rx="1.5" />
+          <rect x="6" y="12" width="15" height="3" rx="1.5" />
+          <rect x="6" y="18" width="9" height="3" rx="1.5" />
+        </g>
+        <rect x="6" y="24" width="20" height="4" rx="2" fill="#2b3ac7" />
+      </svg>
+      agent-linters
+    </a>
+    <nav aria-label="Sections">
+      <ul class="nav">
+        <li><a href="#compare">Compare</a></li>
+        <li><a href="#coverage">Coverage</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="#traps">Traps</a></li>
+        <li><a href="https://github.com/cocodedk/agent-linters">GitHub</a></li>
+        <li><a href="fa/" class="lang-switch" lang="fa" hreflang="fa">فارسی</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <div class="wrap">
+      <div class="gut" data-mark="+">
+        <p class="eyebrow">lintp · one line per finding</p>
+        <h1>Linter output your coding agent can actually afford</h1>
+        <p class="lead">Default linter output is written for a human reading one error, so every
+        finding arrives with a code frame, a caret and a help block. An agent gets fourteen of
+        those lines per finding and spends its context on formatting. <strong>lintp prints the
+        instruction and drops the rest.</strong></p>
+        <div class="cta-row">
+          <a class="btn btn-solid" href="https://github.com/cocodedk/agent-linters">Clone it from GitHub</a>
+          <a class="btn btn-ghost" href="#install">Read the install steps</a>
+        </div>
+      </div>
+      <div class="term-strip">
+<pre class="term" aria-label="Example lintp run across four file types"><span class="p">$ lintp src/</span>
+src/api.py:1     remove unused import `os`
+src/api.py:14    return str, not int
+src/ui.tsx:8     add a `key` prop to the list element
+src/theme.css:1  remove the duplicate CSS property
+
+<span class="d">4 findings, 2 auto-fixable (lintp --fix)</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="compare">
+    <div class="wrap">
+      <h2>Same three findings. 31 lines, or 5.</h2>
+      <figure>
+        <div class="compare">
+          <div class="panel-noise">
+            <div class="panel-head">
+              <p class="panel-label">What your agent reads today</p>
+              <p class="panel-meta">ruff check + mypy · 31 lines · 587 bytes</p>
+              <div class="ruler" style="--n: 31" role="img" aria-label="Ruler with 31 ticks, one per line of output"></div>
+            </div>
+<pre class="term" aria-label="Default ruff and mypy output, 31 lines"><span class="p">$ ruff check src/api.py</span>
+<span class="r">I001</span> [*] Import block is un-sorted or un-formatted
+<span class="f"> --&gt; </span>src/api.py:1:1
+<span class="f">  |</span>
+<span class="f">1 | / </span>import os
+<span class="f">2 | | </span>import json
+<span class="f">  | |___________^</span>
+<span class="d">help: Organize imports</span>
+<span class="f">  |</span>
+<span class="f">1 + </span>import json
+<span class="f">2 | </span>import os
+<span class="f">  - </span>import json
+<span class="f">3 |</span>
+<span class="f">  |</span>
+
+<span class="r">F401</span> [*] `os` imported but unused
+<span class="f"> --&gt; </span>src/api.py:1:8
+<span class="f">  |</span>
+<span class="f">1 | </span>import os
+<span class="f">  |        ^^</span>
+<span class="f">2 | </span>import json
+<span class="f">  |</span>
+<span class="d">help: Remove unused import: `os`</span>
+<span class="f">  |</span>
+<span class="f">  - </span>import os
+<span class="f">1 | </span>import json
+<span class="f">  |</span>
+
+<span class="d">Found 2 errors.</span>
+<span class="d">[*] 2 fixable with the `--fix` option.</span>
+<span class="p">$ mypy src/api.py</span>
+src/api.py:11: error: Incompatible return value type (got "str", expected "int")  <span class="d">[return-value]</span>
+<span class="d">Found 1 error in 1 file (checked 1 source file)</span></pre>
+          </div>
+
+          <div class="panel-signal">
+            <div class="panel-head">
+              <p class="panel-label">What lintp hands it</p>
+              <p class="panel-meta">lintp · 5 lines · 155 bytes</p>
+              <div class="ruler" style="--n: 5" role="img" aria-label="Ruler with 5 ticks, one per line of output"></div>
+            </div>
+<pre class="term" aria-label="lintp output for the same file, 5 lines"><span class="p">$ lintp src/api.py</span>
+src/api.py:1   sort the import block
+src/api.py:1   remove unused import `os`
+src/api.py:11  return int, not str
+
+<span class="d">3 findings, 2 auto-fixable (lintp --fix)</span></pre>
+          </div>
+        </div>
+        <figcaption>Two commands, two output formats, and most of the first one is ASCII art.
+        lintp keeps the file, the line and the verb. Nothing is invented and nothing is
+        swallowed: a rule with no hand-written phrasing falls through to the linter's own
+        message.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="coverage">
+    <div class="wrap">
+      <div class="gut" data-mark="&gt;">
+        <h2>One command, four linters</h2>
+        <p>Point lintp at a path. It routes by extension, then prints every finding in the same
+        shape no matter which tool produced it. Exit codes stay useful: <code>0</code> clean,
+        <code>1</code> findings, <code>2</code> a linter failed to run.</p>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <caption>File type to linter</caption>
+          <thead>
+            <tr><th scope="col">Extensions</th><th scope="col">Linter</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>.py .pyi</code></td><td>ruff + mypy</td></tr>
+            <tr><td><code>.js .mjs .cjs .jsx .ts .tsx .mts .cts</code></td><td>oxlint</td></tr>
+            <tr><td><code>.css .scss .json .jsonc</code></td><td>biome</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>biome lints JS and TS as well, so those findings are dropped. oxlint owns them, and
+      duplicate prompts are worse than none.</p>
+
+      <h3>Flags</h3>
+      <div class="table-scroll">
+        <table>
+          <caption>lintp flags</caption>
+          <thead>
+            <tr><th scope="col">Flag</th><th scope="col">Effect</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>--fix</code></td><td>apply the safe autofixes first, then report what remains</td></tr>
+            <tr><td><code>--codes</code></td><td>append the rule name to each line</td></tr>
+            <tr><td><code>--strict</code></td><td>add oxlint's <code>pedantic</code> and <code>style</code> rules</td></tr>
+            <tr><td><code>--tools</code></td><td>run a subset, e.g. <code>--tools ruff,mypy</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Your repo's config still wins</h3>
+      <p>Where a repo has an <code>.oxlintrc.json</code>, lintp passes it with <code>-c</code> and
+      adds no category flags of its own. A forced category switches rules back on that the repo
+      deliberately turned off, which is how a wrapper starts giving advice the project already
+      rejected.</p>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <div class="gut" data-mark="$">
+        <h2>Install</h2>
+        <p>Three steps, in order. Nothing here compiles.</p>
+      </div>
+
+      <ol class="steps">
+        <li data-n="1">
+          <p class="step-title">Install the linters you want</p>
+          <p>None of them ship with agent-linters.</p>
+<pre class="term" aria-label="Install the linters"><span class="p">$</span> uv tool install ruff <span class="d">&amp;&amp;</span> uv tool install mypy
+<span class="p">$</span> npm install -g oxlint @biomejs/biome</pre>
+        </li>
+        <li data-n="2">
+          <p class="step-title">Clone the repo and run the installer</p>
+<pre class="term" aria-label="Clone and install"><span class="p">$</span> git clone https://github.com/cocodedk/agent-linters ~/projects/agent-linters
+<span class="p">$</span> cd ~/projects/agent-linters <span class="d">&amp;&amp;</span> ./install.sh</pre>
+          <p>It symlinks <code>bin/</code>, <code>shims/</code> and <code>config/</code> into
+          <code>~/.local</code> and <code>~/.config</code>, and adds one <code>source</code> line to
+          your shell profile. A real file already sitting at a target gets moved to
+          <code>&lt;name&gt;.bak</code> first.</p>
+        </li>
+        <li data-n="3">
+          <p class="step-title">Tell Claude Code</p>
+          <p>Claude Code reads its own <code>env</code> block rather than your shell profile, so add
+          two variables to <code>~/.claude/settings.json</code>, or let
+          <code>./install.sh --claude</code> do it with <code>jq</code>.</p>
+<pre class="term" aria-label="Claude Code settings block">"env": {
+  "RUFF_OUTPUT_FORMAT": "concise",
+  "RUFF_CACHE_DIR": "/home/YOU/.cache/ruff"
+}</pre>
+        </li>
+      </ol>
+
+      <div class="aside-note">
+        <p><code>./install.sh --uninstall</code> reverses all of it and puts the backups back.
+        Re-running the installer is safe. Requirements are POSIX <code>sh</code>, Python 3.8 or
+        newer, and the linters themselves.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="traps">
+    <div class="wrap">
+      <div class="gut" data-mark="!">
+        <h2>Four traps that cost real debugging</h2>
+        <p>Every one of these made a linter point at the wrong thing. They are why lintp does more
+        than export an environment variable.</p>
+      </div>
+
+      <ul class="traps">
+        <li>
+          <p class="trap-title">Never share one MYPY_CACHE_DIR</p>
+          <p>Two projects that each contain a <code>utils.py</code> collide in a shared cache, and
+          mypy then reports the finding against the other project's file. An agent that trusts the
+          path edits a file in the wrong repository. The shim gives every working directory its own
+          cache. An inherited <code>MYPY_CACHE_DIR</code> still wins, as an explicit setting should,
+          so unset yours if you ever exported a shared one.</p>
+        </li>
+        <li>
+          <p class="trap-title">ruff lints whatever file you name</p>
+          <p><code>ruff check app.js</code> returns a screenful of imaginary Python syntax errors.
+          Filter paths by extension before you invoke anything; lintp does it in
+          <code>select()</code>.</p>
+        </li>
+        <li>
+          <p class="trap-title">mypy's paths are relative to the target</p>
+          <p>A bare <code>a.py</code> in mypy's output can resolve to a different same-named file in
+          your current directory. Anchor the reported paths to the target roots first.</p>
+        </li>
+        <li>
+          <p class="trap-title">oxlint reads config from the cwd only</p>
+          <p>ruff, mypy and biome all search upward. oxlint does not, so running it from a
+          subdirectory silently loses every exception the repo's config exists to declare. lintp
+          walks up and passes <code>-c</code> itself.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Built by <a href="https://cocode.dk" target="_blank" rel="noreferrer">Cocode</a>. Source on <a href="https://github.com/cocodedk/agent-linters">GitHub</a>.</p>
+    <p>MIT &nbsp;|&nbsp; © 2026 <a href="https://cocode.dk" target="_blank" rel="noreferrer">Cocode</a> &nbsp;|&nbsp; Created by <a href="https://linkedin.com/in/babakbandpey" target="_blank" rel="noreferrer">Babak Bandpey</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

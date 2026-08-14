@@ -1,0 +1,253 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches-ignore: [main]
+
+# cancel-in-progress is safe here because every job below is a read-only check (lint,
+# type-check, a throwaway-HOME install test) — nothing here deploys or mutates shared
+# state, so an in-flight run made stale by a newer push can simply be killed.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: install shellcheck if missing
+        run: |
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends shellcheck
+          fi
+
+      - name: shellcheck install.sh, shims, and shell/linters.sh
+        # --shell=sh: shell/linters.sh is a fragment meant to be sourced (see its own
+        # header), so it deliberately has no shebang for shellcheck to detect from —
+        # without this flag it fails with SC2148 ("target shell is unknown").
+        #
+        # --exclude=SC1007: install.sh and the shims use `CDPATH= cd -- ...` /
+        # `CDPATH= pwd -P` to stop `cd` from honouring an inherited CDPATH (which can
+        # make it print an extra line, or resolve to a different directory than the
+        # literal argument). That `VAR= cmd` prefix form is deliberate, valid POSIX sh
+        # — not a mistyped assignment — and confirmed clean under `set -eu` in local
+        # testing. shellcheck's SC1007 flags it as a likely typo; it's a known false
+        # positive for this idiom. This job owns only ci.yml, so the fix lives here
+        # rather than as an inline `# shellcheck disable` in files owned elsewhere.
+        # The hooks and scripts are shell too, and a broken hook is as bad as a broken
+        # shim — it fires on every commit. They ship with the repo, so they get linted.
+        run: |
+          shellcheck --shell=sh --exclude=SC1007 \
+            install.sh \
+            shims/mypy \
+            shims/biome \
+            shell/linters.sh \
+            scripts/install-hooks.sh \
+            scripts/setup-repo.sh \
+            .githooks/pre-commit \
+            .githooks/commit-msg \
+            .githooks/pre-push
+
+      # shell/linters.fish is fish, not sh/bash, so shellcheck can't check it. `fish -n`
+      # would, but fish isn't part of the ubuntu-latest image and pulling it in means a
+      # full `apt-get update` + install just for one syntax check — not cheap enough to
+      # justify here, so it's skipped. (bin/lintp's Python syntax is covered by ruff/mypy
+      # below; the shims and install.sh are covered above.)
+
+  python-lint:
+    name: ruff + mypy (bin/lintp)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      # No cache: pip — this repo has no requirements.txt/pyproject.toml for
+      # setup-python to hash into a cache key, and it errors out without one. We're
+      # only installing two wheels (ruff, mypy), so a cache buys nothing anyway.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install ruff mypy
+
+      # bin/lintp has no file extension. Passing the path explicitly makes both tools
+      # analyze it as Python regardless of extension (confirmed locally: `ruff check
+      # bin/lintp` and `mypy bin/lintp` both work with no extra flags needed).
+      - name: ruff check
+        run: ruff check bin/lintp
+
+      - name: mypy
+        run: mypy bin/lintp
+
+  install-roundtrip:
+    name: install.sh round trip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: install into a throwaway HOME
+        run: |
+          set -eu
+          fake_home="$RUNNER_TEMP/agent-linters-home"
+          mkdir -p "$fake_home"
+          echo "FAKE_HOME=$fake_home" >> "$GITHUB_ENV"
+
+          # Overriding HOME alone is NOT enough: install.sh honours XDG_CONFIG_HOME /
+          # XDG_CACHE_HOME when they're set, and those win over $HOME/.config —
+          # so a real ~/.config on the runner (or one inherited from the environment)
+          # could otherwise leak into. Point every XDG var at the throwaway dir too.
+          #
+          # Seed a pre-existing profile line that the uninstall step must leave alone.
+          printf 'export PREEXISTING=1\n' > "$fake_home/.profile"
+
+          env -i HOME="$fake_home" \
+              XDG_CONFIG_HOME="$fake_home/.config" \
+              XDG_CACHE_HOME="$fake_home/.cache" \
+              PATH="/usr/bin:/bin" \
+              sh "$GITHUB_WORKSPACE/install.sh"
+
+      - name: assert symlinks exist and point into the checkout
+        run: |
+          set -eu
+          for f in "$FAKE_HOME/.local/bin/lintp" \
+                   "$FAKE_HOME/.local/shims/mypy" \
+                   "$FAKE_HOME/.local/shims/biome" \
+                   "$FAKE_HOME/.config/ruff/ruff.toml" \
+                   "$FAKE_HOME/.config/mypy/config"; do
+            [ -L "$f" ] || { echo "FAIL: $f is not a symlink"; exit 1; }
+            target=$(readlink -f "$f")
+            case "$target" in
+              "$GITHUB_WORKSPACE"/*) echo "ok: $f -> $target" ;;
+              *) echo "FAIL: $f -> $target (does not point into the checkout)"; exit 1 ;;
+            esac
+          done
+          grep -Fq "$GITHUB_WORKSPACE/shell/linters.sh" "$FAKE_HOME/.profile"
+          grep -Fq "$GITHUB_WORKSPACE/shell/linters.fish" "$FAKE_HOME/.config/fish/config.fish"
+
+      - name: re-running install.sh is idempotent
+        run: |
+          set -eu
+          before=$(cat "$FAKE_HOME/.profile")
+          env -i HOME="$FAKE_HOME" \
+              XDG_CONFIG_HOME="$FAKE_HOME/.config" \
+              XDG_CACHE_HOME="$FAKE_HOME/.cache" \
+              PATH="/usr/bin:/bin" \
+              sh "$GITHUB_WORKSPACE/install.sh"
+          after=$(cat "$FAKE_HOME/.profile")
+          [ "$before" = "$after" ] || { echo "FAIL: re-run changed .profile"; exit 1; }
+          # Count the marker comment, not a bare "agent-linters" substring: the repo
+          # checkout directory is itself named agent-linters, so the sourcing line's
+          # path also matches that substring and would inflate the count to 2 even
+          # when there's exactly one hook.
+          count=$(grep -c "# agent-linters: concise linter output for every agent" "$FAKE_HOME/.profile")
+          [ "$count" -eq 1 ] || { echo "FAIL: expected exactly one hook line, got $count"; exit 1; }
+
+      - name: uninstall removes ours and keeps pre-existing content
+        run: |
+          set -eu
+          env -i HOME="$FAKE_HOME" \
+              XDG_CONFIG_HOME="$FAKE_HOME/.config" \
+              XDG_CACHE_HOME="$FAKE_HOME/.cache" \
+              PATH="/usr/bin:/bin" \
+              sh "$GITHUB_WORKSPACE/install.sh" --uninstall
+
+          for f in "$FAKE_HOME/.local/bin/lintp" \
+                   "$FAKE_HOME/.local/shims/mypy" \
+                   "$FAKE_HOME/.local/shims/biome" \
+                   "$FAKE_HOME/.config/ruff/ruff.toml" \
+                   "$FAKE_HOME/.config/mypy/config"; do
+            if [ -e "$f" ] || [ -L "$f" ]; then echo "FAIL: $f still present"; exit 1; fi
+          done
+
+          grep -q "agent-linters" "$FAKE_HOME/.profile" && { echo "FAIL: hook line survived uninstall"; exit 1; }
+          grep -q "agent-linters" "$FAKE_HOME/.config/fish/config.fish" && { echo "FAIL: fish hook line survived uninstall"; exit 1; }
+          grep -q "PREEXISTING=1" "$FAKE_HOME/.profile" || { echo "FAIL: pre-existing profile line was lost"; exit 1; }
+          echo "ok: nothing of ours remains, pre-existing line survived"
+
+  lintp-smoke:
+    name: lintp smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      # No cache: pip — this repo has no requirements.txt/pyproject.toml for
+      # setup-python to hash into a cache key, and it errors out without one. We're
+      # only installing two wheels (ruff, mypy), so a cache buys nothing anyway.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: pip install ruff mypy
+      - run: npm install -g oxlint @biomejs/biome
+
+      - name: bin/lintp --help
+        run: python3 bin/lintp --help
+
+      - name: exit 1 on a deliberately-dirty fixture
+        run: |
+          set -eu
+          fixture="$RUNNER_TEMP/lintp-dirty"
+          mkdir -p "$fixture"
+          cat > "$fixture/bad.py" <<'EOF'
+          import os
+
+
+          def foo():
+              x = 1
+              return 2
+          EOF
+          set +e
+          python3 bin/lintp "$fixture"
+          status=$?
+          set -e
+          [ "$status" -eq 1 ] || { echo "FAIL: expected exit 1, got $status"; exit 1; }
+
+      - name: exit 0 on a clean fixture
+        run: |
+          set -eu
+          fixture="$RUNNER_TEMP/lintp-clean"
+          mkdir -p "$fixture"
+          cat > "$fixture/good.py" <<'EOF'
+          def foo() -> int:
+              return 2
+          EOF
+          set +e
+          python3 bin/lintp "$fixture"
+          status=$?
+          set -e
+          [ "$status" -eq 0 ] || { echo "FAIL: expected exit 0, got $status"; exit 1; }
+
+  # Single fan-in check for branch protection to require. Protection has to name a
+  # context, and naming all four jobs means every future job has to be added there too —
+  # easy to forget, and a job nobody required is a job that cannot block a merge.
+  #
+  # `if: always()` is load-bearing. Without it, a failing dependency SKIPS this job, the
+  # required check is then never reported, and the pull request sits pending forever
+  # instead of reporting a failure. So it always runs, and inspects the results itself.
+  verify:
+    name: verify
+    needs: [shellcheck, python-lint, install-roundtrip, lintp-smoke]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every job to have succeeded
+        run: |
+          set -eu
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "job results: $results"
+          for result in $results; do
+            [ "$result" = success ] || { echo "FAIL: a required job reported '$result'"; exit 1; }
+          done
+          echo "all required jobs succeeded"

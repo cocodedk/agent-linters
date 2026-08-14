@@ -1,0 +1,11 @@
+version: 2
+updates:
+  # No package manifest in this repo (no package.json/requirements.txt/go.mod) —
+  # bin/lintp and the shims are dependency-free stdlib/POSIX-sh scripts.
+  # The only thing Dependabot can usefully watch here is the GitHub Actions
+  # used in CI workflows.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

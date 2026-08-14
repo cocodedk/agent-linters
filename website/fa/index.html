@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<!-- SEO keywords:
+     primary:   خروجی لینتر برای ایجنت کدنویس
+     secondary: lintp، خروجی کوتاه ruff، کانتکست ایجنت
+     intent:    informational
+-->
+
+<title>agent-linters: خروجی لینتر در یک خط برای ایجنت کدنویس</title>
+<meta name="description" content="خروجی لینتر به‌جای یک صفحه قاب کد، یک خط دستوری برای هر ایراد. ruff و mypy و oxlint و biome پشت یک فرمان، برای پایتون، JS/TS، CSS و JSON." />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://cocodedk.github.io/agent-linters/fa/" />
+<link rel="alternate" hreflang="fa" href="https://cocodedk.github.io/agent-linters/fa/" />
+<link rel="alternate" hreflang="en" href="https://cocodedk.github.io/agent-linters/" />
+<link rel="alternate" hreflang="x-default" href="https://cocodedk.github.io/agent-linters/" />
+<link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="agent-linters" />
+<meta property="og:title" content="agent-linters: خروجی لینتری که کانتکست ایجنت را نمی‌خورد" />
+<meta property="og:description" content="ruff و mypy برای سه ایراد ۳۱ خط خرج می‌کنند، lintp پنج خط. یک خط دستوری برای هر ایراد، در پایتون، JS/TS، CSS و JSON." />
+<meta property="og:url" content="https://cocodedk.github.io/agent-linters/fa/" />
+<meta property="og:image" content="https://cocodedk.github.io/agent-linters/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="دو خط‌کش روی کاغذ استخوانی: یکی بلند و اخرایی با برچسب ۳۱ خط، یکی کوتاه و آبی با برچسب ۵ خط، کنار نام agent-linters." />
+<meta property="og:locale" content="fa_IR" />
+<meta property="og:locale:alternate" content="en_US" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="agent-linters: خروجی لینتری که کانتکست ایجنت را نمی‌خورد" />
+<meta name="twitter:description" content="ruff و mypy برای سه ایراد ۳۱ خط خرج می‌کنند، lintp پنج خط. یک خط دستوری برای هر ایراد، در پایتون، JS/TS، CSS و JSON." />
+<meta name="twitter:image" content="https://cocodedk.github.io/agent-linters/og.png" />
+<meta name="twitter:image:alt" content="دو خط‌کش روی کاغذ استخوانی، یکی بلند و اخرایی، یکی کوتاه و آبی." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&amp;display=swap" />
+<link rel="stylesheet" href="../styles.css" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "agent-linters",
+  "description": "ابزار خط فرمانی که خروجی ruff و mypy و oxlint و biome را به یک خط دستوری کوتاه برای هر ایراد تبدیل می‌کند، تا ایجنت کدنویس دستور بخواند نه قاب کد.",
+  "url": "https://cocodedk.github.io/agent-linters/fa/",
+  "downloadUrl": "https://github.com/cocodedk/agent-linters",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Linux, macOS",
+  "license": "https://github.com/cocodedk/agent-linters/blob/main/LICENSE",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "inLanguage": ["fa", "en"],
+  "author": {
+    "@type": "Person",
+    "name": "Babak Bandpey",
+    "url": "https://cocode.dk",
+    "sameAs": [
+      "https://linkedin.com/in/babakbandpey",
+      "https://github.com/cocodedk"
+    ]
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Cocode",
+    "url": "https://cocode.dk"
+  },
+  "codeRepository": "https://github.com/cocodedk/agent-linters"
+}
+</script>
+</head>
+
+<body dir="rtl">
+<a class="skip" href="#main">رفتن به محتوا</a>
+
+<header class="site-head">
+  <div class="wrap head-in">
+    <a class="brand" href="./">
+      <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect width="32" height="32" rx="6" fill="#f4f2ed" />
+        <g fill="#c98a1e">
+          <rect x="6" y="6" width="20" height="3" rx="1.5" />
+          <rect x="6" y="12" width="15" height="3" rx="1.5" />
+          <rect x="6" y="18" width="9" height="3" rx="1.5" />
+        </g>
+        <rect x="6" y="24" width="20" height="4" rx="2" fill="#2b3ac7" />
+      </svg>
+      agent-linters
+    </a>
+    <nav aria-label="بخش‌ها">
+      <ul class="nav">
+        <li><a href="#compare">مقایسه</a></li>
+        <li><a href="#coverage">پوشش</a></li>
+        <li><a href="#install">نصب</a></li>
+        <li><a href="#traps">تله‌ها</a></li>
+        <li><a href="https://github.com/cocodedk/agent-linters">گیت‌هاب</a></li>
+        <li><a href="../" class="lang-switch" lang="en" hreflang="en">English</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <div class="wrap">
+      <div class="gut" data-mark="+">
+        <p class="eyebrow">lintp · یک خط برای هر ایراد</p>
+        <h1>خروجی لینتر را ایجنت می‌خواند، نه آدم</h1>
+        <p class="lead">خروجی پیش‌فرض لینترها برای آدمی نوشته شده که یک خطا را می‌خواند، پس هر ایراد
+        با یک قاب کد و یک فلش اشاره‌گر و یک بند راهنما می‌آید. ایجنت برای هر ایراد چهارده خط از
+        همین‌ها می‌گیرد و کانتکستش را خرج قالب‌بندی می‌کند. <strong>lintp فقط دستور را چاپ می‌کند و
+        بقیه را می‌اندازد دور.</strong></p>
+        <div class="cta-row">
+          <a class="btn btn-solid" href="https://github.com/cocodedk/agent-linters">کلون از گیت‌هاب</a>
+          <a class="btn btn-ghost" href="#install">مراحل نصب</a>
+        </div>
+      </div>
+      <div class="term-strip">
+<pre class="term" aria-label="نمونه اجرای lintp روی چهار نوع فایل"><span class="p">$ lintp src/</span>
+src/api.py:1     remove unused import `os`
+src/api.py:14    return str, not int
+src/ui.tsx:8     add a `key` prop to the list element
+src/theme.css:1  remove the duplicate CSS property
+
+<span class="d">4 findings, 2 auto-fixable (lintp --fix)</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="compare">
+    <div class="wrap">
+      <h2>سه ایراد یکسان؛ ۳۱ خط یا ۵ خط</h2>
+      <figure>
+        <div class="compare">
+          <div class="panel-noise">
+            <div class="panel-head">
+              <p class="panel-label">چیزی که ایجنت امروز می‌خواند</p>
+              <p class="panel-meta">۳۱ خط · ۵۸۷ بایت · خروجی <code>ruff check</code> و <code>mypy</code></p>
+              <div class="ruler" style="--n: 31" role="img" aria-label="خط‌کشی با ۳۱ نشانه، یکی برای هر خط خروجی"></div>
+            </div>
+<pre class="term" aria-label="خروجی پیش‌فرض ruff و mypy، ۳۱ خط"><span class="p">$ ruff check src/api.py</span>
+<span class="r">I001</span> [*] Import block is un-sorted or un-formatted
+<span class="f"> --&gt; </span>src/api.py:1:1
+<span class="f">  |</span>
+<span class="f">1 | / </span>import os
+<span class="f">2 | | </span>import json
+<span class="f">  | |___________^</span>
+<span class="d">help: Organize imports</span>
+<span class="f">  |</span>
+<span class="f">1 + </span>import json
+<span class="f">2 | </span>import os
+<span class="f">  - </span>import json
+<span class="f">3 |</span>
+<span class="f">  |</span>
+
+<span class="r">F401</span> [*] `os` imported but unused
+<span class="f"> --&gt; </span>src/api.py:1:8
+<span class="f">  |</span>
+<span class="f">1 | </span>import os
+<span class="f">  |        ^^</span>
+<span class="f">2 | </span>import json
+<span class="f">  |</span>
+<span class="d">help: Remove unused import: `os`</span>
+<span class="f">  |</span>
+<span class="f">  - </span>import os
+<span class="f">1 | </span>import json
+<span class="f">  |</span>
+
+<span class="d">Found 2 errors.</span>
+<span class="d">[*] 2 fixable with the `--fix` option.</span>
+<span class="p">$ mypy src/api.py</span>
+src/api.py:11: error: Incompatible return value type (got "str", expected "int")  <span class="d">[return-value]</span>
+<span class="d">Found 1 error in 1 file (checked 1 source file)</span></pre>
+          </div>
+
+          <div class="panel-signal">
+            <div class="panel-head">
+              <p class="panel-label">چیزی که lintp تحویلش می‌دهد</p>
+              <p class="panel-meta">۵ خط · ۱۵۵ بایت · خروجی <code>lintp</code></p>
+              <div class="ruler" style="--n: 5" role="img" aria-label="خط‌کشی با ۵ نشانه، یکی برای هر خط خروجی"></div>
+            </div>
+<pre class="term" aria-label="خروجی lintp برای همان فایل، ۵ خط"><span class="p">$ lintp src/api.py</span>
+src/api.py:1   sort the import block
+src/api.py:1   remove unused import `os`
+src/api.py:11  return int, not str
+
+<span class="d">3 findings, 2 auto-fixable (lintp --fix)</span></pre>
+          </div>
+        </div>
+        <figcaption>دو فرمان، دو قالب خروجی، و بیشترِ اولی نقاشی اَسکی است. lintp فایل و شمارهٔ خط و
+        فعل را نگه می‌دارد. چیزی از خودش درنمی‌آورد و چیزی را هم قورت نمی‌دهد: قاعده‌ای که عبارت
+        دست‌نویس ندارد، با پیام خودِ لینتر عبور می‌کند.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="coverage">
+    <div class="wrap">
+      <div class="gut" data-mark="&gt;">
+        <h2>یک فرمان، چهار لینتر</h2>
+        <p>مسیر را به lintp بده. بر اساس پسوند تصمیم می‌گیرد و هر ایراد را در یک قالب چاپ می‌کند،
+        مهم نیست کدام ابزار پیدایش کرده. کدهای خروج هم به کار می‌آیند: <code>0</code> تمیز،
+        <code>1</code> ایراد دارد، <code>2</code> یکی از لینترها اجرا نشد.</p>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <caption>نوع فایل و لینتر متناظرش</caption>
+          <thead>
+            <tr><th scope="col">پسوند</th><th scope="col">لینتر</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>.py .pyi</code></td><td>ruff + mypy</td></tr>
+            <tr><td><code>.js .mjs .cjs .jsx .ts .tsx .mts .cts</code></td><td>oxlint</td></tr>
+            <tr><td><code>.css .scss .json .jsonc</code></td><td>biome</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>biome خودش JS و TS را هم لینت می‌کند، پس آن ایرادها حذف می‌شوند. صاحب‌شان oxlint است و
+      پرامپت تکراری از هیچ بدتر است.</p>
+
+      <h3>فلگ‌ها</h3>
+      <div class="table-scroll">
+        <table>
+          <caption>فلگ‌های lintp</caption>
+          <thead>
+            <tr><th scope="col">فلگ</th><th scope="col">کارکرد</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>--fix</code></td><td>اول اصلاح‌های بی‌خطر را اعمال کن، بعد باقی‌مانده را گزارش بده</td></tr>
+            <tr><td><code>--codes</code></td><td>نام قاعده را به آخر هر خط اضافه کن</td></tr>
+            <tr><td><code>--strict</code></td><td>قاعده‌های <code>pedantic</code> و <code>style</code> از oxlint را هم روشن کن</td></tr>
+            <tr><td><code>--tools</code></td><td>فقط زیرمجموعه‌ای را اجرا کن، مثل <code>--tools ruff,mypy</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>کانفیگ خودِ پروژه حرف آخر را می‌زند</h3>
+      <p>اگر مخزن <code>.oxlintrc.json</code> داشته باشد، lintp همان را با <code>-c</code> پاس
+      می‌دهد و هیچ فلگ دسته‌ای از خودش اضافه نمی‌کند. دسته‌ای که به‌زور اعمال شود، قاعده‌هایی را
+      برمی‌گرداند که پروژه عمداً خاموش کرده بود، و از همین‌جا است که یک wrapper همان توصیه‌ای را
+      می‌دهد که پروژه قبلاً ردش کرده.</p>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <div class="gut" data-mark="$">
+        <h2>نصب</h2>
+        <p>سه مرحله، به همین ترتیب. هیچ‌چیز اینجا کامپایل نمی‌شود.</p>
+      </div>
+
+      <ol class="steps">
+        <li data-n="۱">
+          <p class="step-title">لینترهایی که می‌خواهی را نصب کن</p>
+          <p>هیچ‌کدام همراه agent-linters نمی‌آیند.</p>
+<pre class="term" aria-label="نصب لینترها"><span class="p">$</span> uv tool install ruff <span class="d">&amp;&amp;</span> uv tool install mypy
+<span class="p">$</span> npm install -g oxlint @biomejs/biome</pre>
+        </li>
+        <li data-n="۲">
+          <p class="step-title">مخزن را کلون کن و نصب‌کننده را اجرا کن</p>
+<pre class="term" aria-label="کلون و نصب"><span class="p">$</span> git clone https://github.com/cocodedk/agent-linters ~/projects/agent-linters
+<span class="p">$</span> cd ~/projects/agent-linters <span class="d">&amp;&amp;</span> ./install.sh</pre>
+          <p>پوشه‌های <code>bin/</code> و <code>shims/</code> و <code>config/</code> را به
+          <code>~/.local</code> و <code>~/.config</code> سیم‌لینک می‌کند و یک خط <code>source</code>
+          به پروفایل شل اضافه می‌کند. اگر فایل واقعی سرِ راه باشد، اول به <code>&lt;name&gt;.bak</code>
+          منتقل می‌شود.</p>
+        </li>
+        <li data-n="۳">
+          <p class="step-title">به Claude Code خبر بده</p>
+          <p>Claude Code بلوک <code>env</code> خودش را می‌خواند، نه پروفایل شل تو. پس دو متغیر را به
+          <code>~/.claude/settings.json</code> اضافه کن، یا بگذار
+          <code>./install.sh --claude</code> با <code>jq</code> این کار را بکند.</p>
+<pre class="term" aria-label="بلوک تنظیمات Claude Code">"env": {
+  "RUFF_OUTPUT_FORMAT": "concise",
+  "RUFF_CACHE_DIR": "/home/YOU/.cache/ruff"
+}</pre>
+        </li>
+      </ol>
+
+      <div class="aside-note">
+        <p><code>./install.sh --uninstall</code> همه‌اش را برمی‌گرداند و بکاپ‌ها را سر جایشان
+        می‌گذارد. اجرای دوبارهٔ نصب‌کننده هم بی‌خطر است. نیازمندی‌ها: <code>sh</code> از نوع POSIX،
+        پایتون ۳.۸ یا بالاتر، و خودِ لینترها.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="traps">
+    <div class="wrap">
+      <div class="gut" data-mark="!">
+        <h2>چهار تله که واقعاً وقت دیباگ برد</h2>
+        <p>هر کدام از این‌ها باعث شد یک لینتر به چیز اشتباهی اشاره کند. به همین دلیل کار lintp به ست
+        کردن یک متغیر محیطی خلاصه نمی‌شود.</p>
+      </div>
+
+      <ul class="traps">
+        <li>
+          <p class="trap-title">هیچ‌وقت یک <code>MYPY_CACHE_DIR</code> مشترک نگذار</p>
+          <p>دو پروژه که هر کدام یک <code>utils.py</code> دارند، در کش مشترک با هم تصادم می‌کنند و
+          mypy ایراد را به فایلِ آن یکی پروژه نسبت می‌دهد. ایجنتی که به مسیر اعتماد کند، فایلی را در
+          مخزن اشتباه ویرایش می‌کند. شیم به هر پوشهٔ کاری کش خودش را می‌دهد.
+          <code>MYPY_CACHE_DIR</code> ارثی هنوز برنده است، چون تنظیم صریح باید برنده باشد، پس اگر
+          یک‌بار مشترک اکسپورتش کرده‌ای، unset کن.</p>
+        </li>
+        <li>
+          <p class="trap-title">ruff هر فایلی را که نام ببری لینت می‌کند</p>
+          <p><code>ruff check app.js</code> یک صفحه خطای سینتکس پایتونِ خیالی برمی‌گرداند. قبل از
+          صدا زدن هر ابزاری، مسیرها را با پسوند فیلتر کن. lintp این کار را در <code>select()</code>
+          می‌کند.</p>
+        </li>
+        <li>
+          <p class="trap-title">مسیرهای mypy نسبت به هدف‌اند، نه به مسیر جاری</p>
+          <p>یک <code>a.py</code> بدون مسیر در خروجی mypy می‌تواند به فایل هم‌نامِ دیگری در پوشهٔ جاری
+          برسد. اول مسیرهای گزارش‌شده را نسبت به ریشهٔ هدف حساب کن.</p>
+        </li>
+        <li>
+          <p class="trap-title">oxlint کانفیگ را فقط از مسیر جاری می‌خواند</p>
+          <p>ruff و mypy و biome همه رو به بالا جست‌وجو می‌کنند، oxlint نه. از یک زیرپوشه اجرایش کن و
+          بی‌صدا همهٔ استثناهایی را از دست می‌دهی که کانفیگ مخزن برای همان‌ها نوشته شده. lintp خودش
+          بالا می‌رود و <code>-c</code> را پاس می‌دهد.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>ساختهٔ <a href="https://cocode.dk" target="_blank" rel="noreferrer">Cocode</a>. سورس روی <a href="https://github.com/cocodedk/agent-linters">گیت‌هاب</a>.</p>
+    <p>MIT &nbsp;|&nbsp; © ۱۴۰۵ <a href="https://cocode.dk" target="_blank" rel="noreferrer">Cocode</a> &nbsp;|&nbsp; ساخته شده توسط <a href="https://linkedin.com/in/babakbandpey" target="_blank" rel="noreferrer">بابک بندپی</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

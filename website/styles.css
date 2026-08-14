@@ -1,0 +1,733 @@
+/* agent-linters — "two-ink manual"
+ * One stylesheet for both languages. Direction-agnostic: every asymmetric
+ * value uses logical properties, so [dir="rtl"] needs almost no overrides.
+ *
+ * Inks: ultramarine (the instruction that matters) + ochre (the noise).
+ * Ground: bone paper. Display face is the monospace, because the subject is
+ * terminal output and pretending otherwise would be a lie.
+ */
+
+:root {
+  --bg: #f4f2ed;
+  --bg-2: #eae7de;
+  --panel: #fcfbf8;
+  --fg: #1b1d24;
+  --fg-dim: #565a67;
+  --ink-blue: #2b3ac7;
+  --ink-blue-soft: #dfe2fa;
+  --ink-ochre: #8a5a0e;
+  --ochre-bar: #c98a1e;
+  --rule: rgba(27, 29, 36, 0.16);
+  --rule-soft: rgba(27, 29, 36, 0.08);
+  --focus: #2b3ac7;
+
+  --mono: ui-monospace, "SFMono-Regular", "SF Mono", "JetBrains Mono",
+    "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --fa: "Vazirmatn", "Vazir", "IRANSansX", "IRANSans", "Noto Naskh Arabic",
+    Tahoma, sans-serif;
+
+  --pad: 1.25rem;
+  --wide: 68rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101223;
+    --bg-2: #171a30;
+    --panel: #161930;
+    --fg: #e7e5dd;
+    --fg-dim: #9c9cb0;
+    --ink-blue: #9fadff;
+    --ink-blue-soft: #232a55;
+    --ink-ochre: #e2a94f;
+    --ochre-bar: #c98a1e;
+    --rule: rgba(231, 229, 221, 0.2);
+    --rule-soft: rgba(231, 229, 221, 0.1);
+    --focus: #9fadff;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    /* biome-ignore lint/complexity/noImportantStyles: overriding every author animation
+       is the point of a reduced-motion reset; specificity cannot do it generically */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: as above */
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 1rem;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+}
+
+body[dir="rtl"] {
+  font-family: var(--fa);
+  line-height: 1.85;
+}
+
+a {
+  color: var(--ink-blue);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--mono);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  margin: 0;
+  text-wrap: balance;
+}
+
+body[dir="rtl"] h1,
+body[dir="rtl"] h2,
+body[dir="rtl"] h3 {
+  font-family: var(--fa);
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+
+p {
+  margin: 0 0 1rem;
+  max-width: 62ch;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  direction: ltr;
+  unicode-bidi: isolate;
+  background: var(--bg-2);
+  border-radius: 3px;
+  padding: 0.1em 0.3em;
+}
+
+.wrap {
+  max-width: var(--wide);
+  margin-inline: auto;
+  padding-inline: var(--pad);
+}
+
+/* Visually hidden by clipping rather than by off-screen positioning: an
+   off-screen-left element becomes off-screen-right under dir="rtl" and adds
+   ten thousand pixels of horizontal scroll. */
+.skip {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip:focus {
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+  z-index: 20;
+  background: var(--ink-blue);
+  color: var(--bg);
+  padding: 0.75rem 1rem;
+}
+
+/* ---------- eyebrow / labels: the utility face ---------- */
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-blue);
+  margin: 0 0 0.75rem;
+  max-width: none;
+}
+
+body[dir="rtl"] .eyebrow {
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.85rem;
+}
+
+/* ---------- header ---------- */
+
+.site-head {
+  border-block-end: 1px solid var(--rule);
+  background: var(--bg);
+}
+
+.head-in {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  min-height: 64px;
+  padding-block: 0.75rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  gap: 0.6rem;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  text-decoration: none;
+  margin-inline-end: auto;
+}
+
+.brand svg {
+  display: block;
+  flex: none;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 0.55rem;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--fg-dim);
+  text-decoration: none;
+}
+
+body[dir="rtl"] .nav a {
+  font-family: var(--fa);
+  font-size: 0.95rem;
+}
+
+.nav a:hover {
+  color: var(--ink-blue);
+}
+
+/* Scoped through .nav rather than carrying !important: the switcher lives inside the nav,
+   so `.nav a` (0,1,1) outranks a bare `.lang-switch` (0,1,0) and its colour and padding
+   lost. `.nav a.lang-switch` (0,2,1) wins on specificity instead of by force. */
+.nav a.lang-switch {
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--fg);
+  padding-inline: 0.8rem;
+}
+
+.nav a.lang-switch:hover {
+  border-color: var(--ink-blue);
+}
+
+/* ---------- gutter spine ---------- */
+/* The page's structural device is a linter gutter. It flips for RTL because
+   it is a border-inline-start, not a border-left. */
+
+.gut {
+  border-inline-start: 1px solid var(--rule);
+  padding-inline-start: 1rem;
+  position: relative;
+}
+
+.gut::before {
+  content: attr(data-mark);
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  transform: translateX(-50%);
+  background: var(--bg);
+  color: var(--ink-blue);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  line-height: 1;
+  padding-block: 0.3rem;
+}
+
+body[dir="rtl"] .gut::before {
+  transform: translateX(50%);
+}
+
+section {
+  padding-block: 3rem;
+  border-block-start: 1px solid var(--rule-soft);
+}
+
+section:first-of-type {
+  border-block-start: 0;
+}
+
+h2 {
+  font-size: clamp(1.35rem, 5vw, 1.9rem);
+  margin-block-end: 1rem;
+}
+
+h3 {
+  font-size: 1.05rem;
+  margin-block: 2rem 0.6rem;
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+  padding-block: 2.5rem 3rem;
+}
+
+h1 {
+  font-size: clamp(1.75rem, 7.4vw, 3.1rem);
+  letter-spacing: -0.035em;
+  margin-block-end: 1.25rem;
+}
+
+body[dir="rtl"] h1 {
+  font-size: clamp(1.6rem, 6.6vw, 2.7rem);
+}
+
+.lead {
+  font-size: 1.05rem;
+  color: var(--fg-dim);
+  max-width: 56ch;
+}
+
+.lead strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block-start: 1.75rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding-inline: 1.1rem;
+  border: 1px solid var(--ink-blue);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+body[dir="rtl"] .btn {
+  font-family: var(--fa);
+  font-size: 0.98rem;
+}
+
+.btn-solid {
+  background: var(--ink-blue);
+  color: var(--bg);
+}
+
+.btn-solid:hover {
+  filter: brightness(1.12);
+}
+
+.btn-ghost {
+  color: var(--ink-blue);
+}
+
+.btn-ghost:hover {
+  background: var(--ink-blue-soft);
+}
+
+/* ---------- terminal panels: output printed on paper ---------- */
+
+.term {
+  direction: ltr;
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  line-height: 1.55;
+  margin: 0;
+  padding: 0.9rem 1rem;
+  max-width: 100%;
+  overflow-x: auto;
+  tab-size: 2;
+  white-space: pre;
+}
+
+@media (min-width: 640px) {
+  .term {
+    font-size: 0.82rem;
+  }
+}
+
+.term .p {
+  color: var(--ink-blue);
+  font-weight: 700;
+}
+
+.term .f {
+  color: var(--ochre-bar);
+}
+
+.term .r {
+  color: var(--ink-ochre);
+  font-weight: 700;
+}
+
+.term .d {
+  color: var(--fg-dim);
+}
+
+.term-strip {
+  margin-block: 1.5rem 0;
+}
+
+/* ---------- the signature: two panels and a ruler ---------- */
+
+.compare {
+  display: grid;
+  gap: 2rem;
+}
+
+/* Grid and flex children default to min-width:auto, so a <pre> full of long
+   unwrapped lines widens its track and pushes the whole page sideways. The
+   terminal panels have to scroll inside themselves instead. */
+.compare > *,
+.steps > li,
+.traps > li,
+.head-in > * {
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .compare {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem 2.5rem;
+    align-items: start;
+  }
+}
+
+.panel-head {
+  margin-block-end: 0.75rem;
+}
+
+.panel-label {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 0 0 0.35rem;
+  max-width: none;
+}
+
+body[dir="rtl"] .panel-label {
+  font-family: var(--fa);
+  font-size: 0.95rem;
+}
+
+.panel-noise .panel-label {
+  color: var(--ink-ochre);
+}
+
+.panel-signal .panel-label {
+  color: var(--ink-blue);
+}
+
+.panel-meta {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--fg-dim);
+  margin: 0 0 0.5rem;
+  max-width: none;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+body[dir="rtl"] .panel-meta {
+  direction: rtl;
+}
+
+/* The ruler. One tick per line of output, 7px apart, so the two measures are
+   countable and the ratio is the whole argument. */
+.ruler {
+  height: 9px;
+  width: calc(var(--n) * 7px);
+  max-width: 100%;
+  background-image: repeating-linear-gradient(
+    to right,
+    currentColor 0 3px,
+    transparent 3px 7px
+  );
+  background-repeat: repeat-x;
+}
+
+body[dir="rtl"] .ruler {
+  background-image: repeating-linear-gradient(
+    to left,
+    currentColor 0 3px,
+    transparent 3px 7px
+  );
+  background-position: right center;
+}
+
+.panel-noise .ruler {
+  color: var(--ochre-bar);
+}
+
+.panel-signal .ruler {
+  color: var(--ink-blue);
+}
+
+figure {
+  margin: 0;
+}
+
+figcaption {
+  color: var(--fg-dim);
+  font-size: 0.95rem;
+  margin-block-start: 1.5rem;
+  max-width: 62ch;
+}
+
+/* ---------- tables ---------- */
+
+.table-scroll {
+  overflow-x: auto;
+  margin-block: 1.25rem;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 30rem;
+  font-size: 0.94rem;
+}
+
+caption {
+  text-align: start;
+  color: var(--fg-dim);
+  font-size: 0.85rem;
+  padding-block-end: 0.5rem;
+}
+
+th,
+td {
+  text-align: start;
+  padding: 0.6rem 0.75rem;
+  border-block-end: 1px solid var(--rule-soft);
+  vertical-align: top;
+}
+
+thead th {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  border-block-end: 1px solid var(--rule);
+  font-weight: 600;
+}
+
+body[dir="rtl"] thead th {
+  font-family: var(--fa);
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.85rem;
+}
+
+td code {
+  background: none;
+  padding: 0;
+  color: var(--ink-blue);
+}
+
+/* ---------- install steps: a real sequence, so numbered ---------- */
+
+.steps {
+  list-style: none;
+  counter-reset: step;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 2rem;
+}
+
+.steps > li {
+  position: relative;
+  padding-inline-start: 2.6rem;
+}
+
+.steps > li::before {
+  content: attr(data-n);
+  position: absolute;
+  inset-inline-start: 0;
+  top: -0.1rem;
+  width: 1.85rem;
+  height: 1.85rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ink-blue);
+  border-radius: 50%;
+  color: var(--ink-blue);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+body[dir="rtl"] .steps > li::before {
+  font-family: var(--fa);
+  font-size: 0.95rem;
+}
+
+.step-title {
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0.15rem 0 0.5rem;
+}
+
+body[dir="rtl"] .step-title {
+  font-family: var(--fa);
+  font-size: 1.05rem;
+}
+
+.aside-note {
+  border-inline-start: 3px solid var(--ochre-bar);
+  padding-inline-start: 1rem;
+  margin-block-start: 2rem;
+  color: var(--fg-dim);
+  font-size: 0.95rem;
+}
+
+.aside-note p:last-child {
+  margin-block-end: 0;
+}
+
+/* ---------- traps ---------- */
+
+.traps {
+  list-style: none;
+  margin: 1.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 1.75rem;
+}
+
+@media (min-width: 820px) {
+  .traps {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem 2.5rem;
+  }
+}
+
+.traps > li {
+  border-inline-start: 2px solid var(--ochre-bar);
+  padding-inline-start: 1.1rem;
+}
+
+.trap-title {
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--fg);
+  margin: 0 0 0.5rem;
+  max-width: none;
+}
+
+body[dir="rtl"] .trap-title {
+  font-family: var(--fa);
+  font-size: 1.05rem;
+}
+
+.traps p:last-child {
+  margin-block-end: 0;
+  color: var(--fg-dim);
+  font-size: 0.95rem;
+}
+
+/* ---------- footer ---------- */
+
+footer {
+  border-block-start: 1px solid var(--rule);
+  padding-block: 2rem 3rem;
+  margin-block-start: 2rem;
+}
+
+footer p {
+  color: var(--fg-dim);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  margin: 0 0 0.5rem;
+  max-width: none;
+}
+
+/* biome-ignore lint/style/noDescendingSpecificity: compared against a
+   .aside-note rule in a different scope — the two can never match the same
+   element, so there is no cascade conflict, and moving footer rules away from
+   the footer block to satisfy the ordering check would be worse. */
+footer p:last-child {
+  margin-block-end: 0;
+}
+
+footer a {
+  color: var(--fg);
+}
+
+/* biome-ignore lint/style/noDescendingSpecificity: compared against a
+   .aside-note rule in a different scope — the two can never match the same
+   element, so there is no cascade conflict, and moving footer rules away from
+   the footer block to satisfy the ordering check would be worse. */
+footer a:hover {
+  color: var(--ink-blue);
+}
+
+body[dir="rtl"] footer p {
+  font-family: var(--fa);
+  font-size: 0.9rem;
+}
+

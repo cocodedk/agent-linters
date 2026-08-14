@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="robots" content="noindex, nofollow" />
+<title>agent-linters OG image source (1200x630)</title>
+<style>
+  /* Source for og.png. Regenerate with:
+     google-chrome-stable --headless --disable-gpu --no-sandbox \
+       --window-size=1200,630 --screenshot=website/og.png \
+       "file:///abs/path/to/website/og-image.html"
+  */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 630px; }
+  body {
+    background: #f4f2ed;
+    color: #1b1d24;
+    font-family: "DejaVu Sans Mono", ui-monospace, Menlo, Consolas, monospace;
+    padding: 58px 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .top { display: flex; align-items: center; gap: 16px; }
+  .name { font-size: 30px; font-weight: 700; letter-spacing: -0.03em; }
+  .url { margin-left: auto; font-size: 17px; color: #565a67; }
+  h1 {
+    font-size: 68px;
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.045em;
+    margin-top: 30px;
+  }
+  h1 em { font-style: normal; color: #2b3ac7; }
+  .measures { display: flex; flex-direction: column; gap: 26px; margin-top: 6px; }
+  .row { display: flex; align-items: center; gap: 22px; }
+  .ruler { height: 20px; }
+  .ochre {
+    width: 744px;
+    background-image: repeating-linear-gradient(to right, #c98a1e 0 10px, transparent 10px 24px);
+  }
+  .blue {
+    width: 120px;
+    background-image: repeating-linear-gradient(to right, #2b3ac7 0 10px, transparent 10px 24px);
+  }
+  .tag { font-size: 20px; font-weight: 700; white-space: nowrap; }
+  .tag-o { color: #8a5a0e; }
+  .tag-b { color: #2b3ac7; }
+  .foot { display: flex; align-items: flex-end; gap: 24px; }
+  .proof {
+    font-size: 20px;
+    line-height: 1.5;
+    background: #fcfbf8;
+    border: 1px solid rgba(27,29,36,0.16);
+    border-radius: 5px;
+    padding: 14px 18px;
+    white-space: pre;
+  }
+  .proof .p { color: #2b3ac7; font-weight: 700; }
+  .credit { margin-left: auto; font-size: 16px; color: #565a67; text-align: right; line-height: 1.6; }
+  .mark { display: block; }
+</style>
+</head>
+<body>
+
+  <div class="top">
+    <svg class="mark" width="46" height="46" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="6" fill="#eae7de" />
+      <g fill="#c98a1e">
+        <rect x="6" y="6" width="20" height="3" rx="1.5" />
+        <rect x="6" y="12" width="15" height="3" rx="1.5" />
+        <rect x="6" y="18" width="9" height="3" rx="1.5" />
+      </g>
+      <rect x="6" y="24" width="20" height="4" rx="2" fill="#2b3ac7" />
+    </svg>
+    <span class="name">agent-linters</span>
+    <span class="url">cocodedk.github.io/agent-linters</span>
+  </div>
+
+  <div>
+    <h1>Same three findings.<br /><em>31 lines, or 5.</em></h1>
+  </div>
+
+  <div class="measures">
+    <div class="row">
+      <div class="ruler ochre"></div>
+      <span class="tag tag-o">ruff + mypy · 31 lines</span>
+    </div>
+    <div class="row">
+      <div class="ruler blue"></div>
+      <span class="tag tag-b">lintp · 5 lines</span>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="proof"><span class="p">$ lintp src/api.py</span>
+src/api.py:1   remove unused import `os`</div>
+    <div class="credit">Built by Babak Bandpey · cocode.dk<br />linkedin.com/in/babakbandpey</div>
+  </div>
+
+</body>
+</html>
