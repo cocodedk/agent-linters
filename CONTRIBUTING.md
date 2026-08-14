@@ -97,6 +97,23 @@ cache and from oxlint's cwd-only config lookup — see the README's "Traps
 worth knowing" section before touching path resolution (`resolve()`,
 `select()`) or cache handling in `shims/mypy`.
 
+## Why everything goes through a pull request
+
+`main` is protected: a pull request is required, the `verify` check must pass, and
+force-pushes and branch deletion are refused. Approvals are set to 0, so a maintainer can
+self-merge.
+
+One thing to know, because it looks like the protection is broken: `enforce_admins` is
+`false`, so a repository admin's direct push to `main` **succeeds**, printing only a
+`Required status check "verify" is expected.` notice on the way through. That is deliberate
+— it leaves a way out of a jam without an emergency settings change — but it means the
+maintainer is on the honour system. Use a branch and a PR anyway; the protection cannot
+enforce it for you.
+
+The empty commit `test: prove protection rejects a direct push` on `main` is the artefact
+of discovering exactly that. Its message is wrong: the push was not rejected. It stays
+because rewriting `main` to tidy history is worse than an honest stray commit.
+
 ## PR checklist
 
 - [ ] `ruff check` and `mypy` pass on `bin/lintp`, with no new dependency added.
