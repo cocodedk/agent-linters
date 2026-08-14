@@ -1,0 +1,5 @@
+# User-level mypy config. mypy has no env var for output flags, so this is the
+# only global lever; a project-level mypy.ini/pyproject.toml replaces it wholesale.
+# pretty and color_output are already off by default.
+[mypy]
+error_summary = False

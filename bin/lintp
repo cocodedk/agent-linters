@@ -1,0 +1,471 @@
+#!/usr/bin/env python3
+"""lintp — run every linter that applies and print one short imperative line per finding.
+
+    $ lintp src/
+    src/api.py:1   remove unused import `os`
+    src/api.py:14  return str, not int
+    src/ui.tsx:8   add a `key` prop to the list element
+    src/theme.css:1  remove the duplicate CSS property
+
+Routing by file type:
+    .py .pyi                     ruff + mypy
+    .js .mjs .cjs .jsx .ts .tsx  oxlint
+    .css .scss .json .jsonc      biome   (js/ts findings dropped — oxlint owns those)
+
+Exit codes: 0 clean, 1 findings, 2 a linter failed to run.
+Unmapped rules fall back to the linter's own message, so nothing is ever swallowed.
+"""
+
+import argparse
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+
+PY_EXT = {".py", ".pyi"}
+JS_EXT = {".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".mts", ".cts"}
+BIOME_EXT = {".css", ".scss", ".json", ".jsonc"}
+
+# Each rule maps to one (regex, template) pair or a list of them, tried in order.
+# Anything unmapped falls through to the linter's own wording.
+
+RUFF_RULES = {
+    "F401": (r"`(?P<name>.+)` imported but unused", "remove unused import `{name}`"),
+    "F811": (r"Redefinition of unused `(?P<name>.+)`", "drop the redefinition of `{name}`"),
+    "F821": (r"Undefined name `(?P<name>.+)`", "define or import `{name}`"),
+    "F841": (r"Local variable `(?P<name>.+)` is assigned to but never used",
+             "remove unused variable `{name}`"),
+    "I001": (r".*", "sort the import block"),
+    "E501": (r"Line too long \((?P<got>\d+) > (?P<limit>\d+)\)",
+             "shorten line to {limit} chars (now {got})"),
+    "E711": (r".*", "compare with `is None`, not `==`"),
+    "E712": (r".*", "compare with `is True`/`is False`, not `==`"),
+    "E722": (r".*", "catch a specific exception, not bare `except`"),
+    "E741": (r"Ambiguous variable name: `(?P<name>.+)`", "rename ambiguous variable `{name}`"),
+    "ARG001": (r"Unused function argument: `(?P<name>.+)`",
+               "remove or use unused argument `{name}`"),
+    "ARG002": (r"Unused method argument: `(?P<name>.+)`",
+               "remove or use unused argument `{name}`"),
+    "B006": (r".*", "replace the mutable default argument with `None`"),
+    "SIM108": (r".*", "collapse the if/else into a ternary"),
+    "UP006": (r".*", "use the builtin generic instead of the typing alias"),
+    "UP035": (r".*", "import from the current module, not the deprecated one"),
+    "RET504": (r".*", "return the expression directly"),
+}
+
+MYPY_RULES = {
+    "return-value": (r'Incompatible return value type \(got "(?P<got>.+?)", expected "(?P<want>.+?)"\)',
+                     "return {want}, not {got}"),
+    "assignment": (r'Incompatible types in assignment \(expression has type "(?P<got>.+?)", variable has type "(?P<want>.+?)"\)',
+                   "assign {want}, not {got}"),
+    "arg-type": (r'Argument (?P<pos>\d+) to "(?P<fn>.+?)" has incompatible type "(?P<got>.+?)"; expected "(?P<want>.+?)"',
+                 "pass {want} as arg {pos} of {fn}, not {got}"),
+    "attr-defined": (r'"(?P<cls>.+?)" has no attribute "(?P<attr>.+?)"',
+                     "`{cls}` has no `{attr}` — fix the name or add it"),
+    "name-defined": (r'Name "(?P<name>.+?)" is not defined', "define or import `{name}`"),
+    "no-untyped-def": (r".*", "add type annotations to this function"),
+    "call-arg": (r".*", "fix the call's arguments"),
+    "union-attr": (r".*", "narrow the optional before using it"),
+    "var-annotated": (r".*", "annotate this variable's type"),
+}
+
+# oxlint reports eslint-style rule names, so these double as eslint phrasings.
+OXLINT_RULES = {
+    "no-unused-vars": [
+        (r"Identifier '(?P<name>[^']+)' is imported but never used", "remove unused import `{name}`"),
+        (r"Variable '(?P<name>[^']+)' is declared but never used", "remove unused variable `{name}`"),
+        (r"Parameter '(?P<name>[^']+)' is declared but never used",
+         "remove or use unused parameter `{name}`"),
+        (r"'(?P<name>[^']+)'", "remove unused `{name}`"),
+    ],
+    "no-undef": (r"'(?P<name>[^']+)' is not defined", "define or import `{name}`"),
+    "no-unused-private-class-members": (r"'(?P<name>[^']+)'", "remove unused private member `{name}`"),
+    "eqeqeq": (r".*", "use `===` instead of `==`"),
+    "no-debugger": (r".*", "remove the `debugger` statement"),
+    "no-console": (r".*", "remove the `console` call"),
+    "no-empty": (r".*", "fill in or delete the empty block"),
+    "no-empty-pattern": (r".*", "remove the empty destructuring pattern"),
+    "no-dupe-keys": (r"'(?P<name>[^']+)'", "remove the duplicate key `{name}`"),
+    "no-dupe-class-members": (r"'(?P<name>[^']+)'", "remove the duplicate member `{name}`"),
+    "no-duplicate-imports": (r".*", "merge the duplicate imports"),
+    "no-var": (r".*", "use `let` or `const` instead of `var`"),
+    "prefer-const": (r"'(?P<name>[^']+)'", "make `{name}` a `const`"),
+    "no-unreachable": (r".*", "remove the unreachable code"),
+    "no-useless-escape": (r".*", "remove the unnecessary escape"),
+    "no-constant-condition": (r".*", "fix the always-true/false condition"),
+    "no-self-compare": (r".*", "compare against something other than itself"),
+    "no-sparse-arrays": (r".*", "remove the hole from the array literal"),
+    "no-async-promise-executor": (r".*", "make the promise executor synchronous"),
+    "require-await": (r".*", "add an `await` or drop `async`"),
+    "no-explicit-any": (r".*", "replace `any` with a specific type"),
+    "no-non-null-assertion": (r".*", "narrow the value instead of asserting non-null"),
+    "jsx-key": (r".*", "add a `key` prop to the list element"),
+    "exhaustive-deps": (r".*", "list every dependency in the hook's dependency array"),
+    "rules-of-hooks": (r".*", "call the hook unconditionally at the top of the component"),
+    "no-array-index-key": (r".*", "use a stable id, not the array index, as `key`"),
+    "alt-text": (r".*", "add `alt` text to the image"),
+    "anchor-is-valid": (r".*", "give the anchor a real `href`"),
+    "click-events-have-key-events": (r".*", "add a keyboard handler beside the click handler"),
+}
+
+BIOME_RULES = {
+    "noUnusedImports": (r".*", "remove the unused import"),
+    "noUnusedVariables": (r".*", "remove the unused variable"),
+    "noDuplicateProperties": (r".*", "remove the duplicate CSS property"),
+    "noShorthandPropertyOverrides": (r".*", "reorder so the shorthand cannot override the longhand"),
+    "noDescendingSpecificity": (r".*", "order the selectors by ascending specificity"),
+    "noUnknownProperty": (r".*", "fix the unknown CSS property name"),
+    "noUnknownUnit": (r".*", "fix the unknown CSS unit"),
+    "noUnknownFunction": (r".*", "fix the unknown CSS function name"),
+    "noInvalidPositionAtImportRule": (r".*", "move `@import` above every other rule"),
+    "noEmptyBlock": (r".*", "fill in or delete the empty block"),
+    "noDoubleEquals": (r".*", "use `===` instead of `==`"),
+    "noExplicitAny": (r".*", "replace `any` with a specific type"),
+    "useNodejsImportProtocol": (r".*", "prefix the import with `node:`"),
+    "useAltText": (r".*", "add `alt` text to the image"),
+    "useButtonType": (r".*", "give the button an explicit `type`"),
+    "useKeyWithClickEvents": (r".*", "add a keyboard handler beside the click handler"),
+    "noSvgWithoutTitle": (r".*", "add a `<title>` element to the SVG"),
+    "noDuplicateObjectKeys": (r".*", "remove the duplicate key"),
+}
+
+CAMEL = re.compile(r"(?<!^)(?=[A-Z])")
+
+
+def camel_prompt(rule):
+    """Turn an unmapped biome rule name into a usable instruction.
+
+    noDuplicateProperties -> "avoid duplicate properties"
+    useNodejsImportProtocol -> "use nodejs import protocol"
+    """
+    words = CAMEL.sub(" ", rule).lower().split()
+    if not words:
+        return None
+    head, rest = words[0], " ".join(words[1:])
+    if head == "no" and rest:
+        return f"avoid {rest}"
+    if head == "use" and rest:
+        return f"use {rest}"
+    return " ".join(words)
+
+
+def phrase(rules, code, message):
+    """Rewrite a linter message imperatively, or hand it back untouched."""
+    rule = rules.get(code)
+    if not rule:
+        return message
+    pairs = rule if isinstance(rule, list) else [rule]
+    for pattern, template in pairs:
+        match = re.search(pattern, message)
+        if match:
+            return template.format(**match.groupdict())
+    return message
+
+
+def run(cmd):
+    # check=False: a nonzero exit is the expected signal, not an exception.
+    return subprocess.run(cmd, capture_output=True, text=True, check=False)
+
+
+def norm(path):
+    """One path form across linters — some print absolute, some relative."""
+    absolute = os.path.abspath(path)
+    relative = os.path.relpath(absolute)
+    return absolute if relative.startswith("..") else relative
+
+
+def owns(path, extensions):
+    return os.path.splitext(path)[1].lower() in extensions
+
+
+def select(paths, extensions):
+    """Only hand a linter what it can read.
+
+    Directories go through untouched — each linter finds its own file types inside. But an
+    explicit file must match: ruff will happily lint `app.js` as Python and report a
+    screenful of imaginary syntax errors.
+    """
+    return [p for p in paths if os.path.isdir(p) or owns(p, extensions)]
+
+
+def roots_of(paths):
+    """Directories a linter's relative paths could be relative to."""
+    seen = []
+    for p in paths:
+        root = p if os.path.isdir(p) else (os.path.dirname(p) or ".")
+        if root not in seen:
+            seen.append(root)
+    return seen
+
+
+def resolve(reported, roots):
+    """Anchor a linter-reported path to a file that actually exists.
+
+    mypy prints paths relative to the target it was given, not to the cwd, so a bare
+    `a.py` can silently resolve to a different same-named file in the current directory.
+    Roots are tried before the cwd for exactly that reason.
+    """
+    if os.path.isabs(reported):
+        return norm(reported)
+    for root in roots:
+        candidate = os.path.join(root, reported)
+        if os.path.exists(candidate):
+            return norm(candidate)
+    return norm(reported)
+
+
+def parse_json(text):
+    """Pull a JSON document out of stdout, tolerating chatter around it.
+
+    oxlint prefixes "No files found to lint." to its JSON; raw_decode also lets us
+    ignore anything a linter appends after the document. Returns None if there is none.
+    """
+    starts = [i for i in (text.find("{"), text.find("[")) if i != -1]
+    if not starts:
+        return None
+    try:
+        return json.JSONDecoder().raw_decode(text[min(starts):])[0]
+    except json.JSONDecodeError:
+        return None
+
+
+def complaint(proc):
+    """Whatever the tool said when it refused to run — stderr, else stdout."""
+    for stream in (proc.stderr, proc.stdout):
+        lines = [line for line in stream.splitlines() if line.strip()]
+        if lines:
+            return lines
+    return ["exited with no output"]
+
+
+def ruff_findings(paths, opts):
+    exe = shutil.which("ruff")
+    if not exe:
+        return None, ["ruff not found on PATH"]
+    paths = select(paths, PY_EXT)
+    if not paths:
+        return [], []
+    roots = roots_of(paths)
+    if opts.fix:
+        run([exe, "check", "--fix", "--output-format", "concise", *paths])
+    proc = run([exe, "check", "--output-format", "json", *paths])
+    if proc.returncode not in (0, 1):
+        return None, [f"ruff: {line}" for line in complaint(proc)]
+    items = parse_json(proc.stdout) if proc.stdout.strip() else []
+    if items is None:
+        return None, ["ruff: could not parse json output"]
+    return [(
+        resolve(item["filename"], roots),
+        item["location"]["row"],
+        phrase(RUFF_RULES, item.get("code") or "?", item["message"]),
+        item.get("code") or "?",
+        item.get("fix") is not None,
+    ) for item in items], []
+
+
+MYPY_LINE = re.compile(
+    r"^(?P<file>[^:]+):(?P<line>\d+):(?:\d+:)?\s*error:\s*(?P<msg>.*?)(?:\s+\[(?P<code>[a-z-]+)\])?$"
+)
+
+
+def mypy_findings(paths, opts):
+    # Prefer the shim: it owns the per-directory cache policy (see ~/.local/shims/mypy).
+    shim = os.path.expanduser("~/.local/shims/mypy")
+    exe = shim if os.access(shim, os.X_OK) else shutil.which("mypy")
+    if not exe:
+        return None, ["mypy not found on PATH"]
+    paths = select(paths, PY_EXT)
+    if not paths:
+        return [], []
+    roots = roots_of(paths)
+    proc = run([exe, "--no-error-summary", "--no-color-output", "--no-pretty", *paths])
+    out = []
+    for line in proc.stdout.splitlines():
+        match = MYPY_LINE.match(line.strip())
+        if not match:
+            continue
+        code = match["code"] or "?"
+        out.append((resolve(match["file"], roots), int(match["line"]),
+                    phrase(MYPY_RULES, code, match["msg"]), code, False))
+    # Exit 2 means mypy aborted (syntax error, bad config, unresolvable import). It still
+    # prints real errors on stdout first, so only escalate when we parsed none — otherwise
+    # a broken file would be reported as clean.
+    if proc.returncode not in (0, 1) and not out:
+        noise = "no .py"  # a frontend-only target is not a mypy failure
+        if any(noise in line for line in complaint(proc)):
+            return [], []
+        return None, [f"mypy: {line}" for line in complaint(proc)]
+    return out, []
+
+
+OXLINT_CODE = re.compile(r"^(?:(?P<plugin>[\w-]+)\()?(?P<rule>[\w./-]+)\)?$")
+OXLINT_CONFIGS = (".oxlintrc.json", "oxlint.json", ".oxlintrc")
+
+
+def find_oxlint_config(roots):
+    """Nearest oxlint config at or above the targets, as an absolute path.
+
+    ruff, mypy and biome all search upward for their config; oxlint looks only in the
+    cwd. Left alone that means running from a subdirectory silently drops a repo's
+    exceptions, so we find the config ourselves and pass it with -c.
+    """
+    for root in roots:
+        current = os.path.abspath(root)
+        while True:
+            for name in OXLINT_CONFIGS:
+                candidate = os.path.join(current, name)
+                if os.path.isfile(candidate):
+                    return candidate
+            parent = os.path.dirname(current)
+            if parent == current:
+                break
+            current = parent
+    return None
+
+
+def oxlint_findings(paths, opts):
+    exe = shutil.which("oxlint")
+    if not exe:
+        return None, ["oxlint not found on PATH"]
+    paths = select(paths, JS_EXT)
+    if not paths:
+        return [], []
+    roots = roots_of(paths)
+    # correctness is oxlint's default; suspicious is cheap and high-signal. pedantic and
+    # style stay behind --strict because they carry occasional false positives.
+    #
+    # But a -D on the command line outranks the project's own config, so a repo that has
+    # deliberately switched a rule off would see it switched back on. Where a project
+    # config exists it is authoritative, and only an explicit --strict overrides it.
+    config = find_oxlint_config(roots)
+    deny = ["-c", config] if config else ["-D", "correctness", "-D", "suspicious"]
+    if opts.strict:
+        deny += ["-D", "pedantic", "-D", "style"]
+    if opts.fix:
+        run([exe, "--fix", "--silent", *deny, *paths])
+    proc = run([exe, "--format=json", *deny, *paths])
+    if proc.returncode not in (0, 1):
+        return None, [f"oxlint: {line}" for line in complaint(proc)]
+    document = parse_json(proc.stdout) if proc.stdout.strip() else {}
+    if document is None:
+        return None, ["oxlint: could not parse json output"]
+    items = document.get("diagnostics", [])
+    out = []
+    for item in items:
+        path = item.get("filename", "?")
+        if not owns(path, JS_EXT):
+            continue
+        match = OXLINT_CODE.match(item.get("code", ""))
+        rule = match["rule"] if match else item.get("code", "?")
+        labels = item.get("labels") or [{}]
+        line = labels[0].get("span", {}).get("line", 1)
+        out.append((resolve(path, roots), line,
+                    phrase(OXLINT_RULES, rule, item.get("message", "")), rule, False))
+    return out, []
+
+
+def biome_findings(paths, opts):
+    exe = shutil.which("biome")
+    if not exe:
+        return None, ["biome not found on PATH"]
+    paths = select(paths, BIOME_EXT)
+    if not paths:
+        return [], []
+    roots = roots_of(paths)
+    # --files-ignore-unknown keeps biome quiet about .py and friends. js/ts findings are
+    # dropped below: oxlint already covers those, and duplicate prompts are worse than none.
+    base = ["lint", "--reporter=json", "--files-ignore-unknown=true"]
+    if opts.fix:
+        run([exe, "lint", "--write", "--reporter=summary",
+             "--files-ignore-unknown=true", *paths])
+    proc = run([exe, *base, *paths])
+    document = parse_json(proc.stdout) if proc.stdout.strip() else {}
+    if document is None:
+        if proc.returncode not in (0, 1):
+            return None, [f"biome: {line}" for line in complaint(proc)]
+        return None, ["biome: could not parse json output"]
+    items = document.get("diagnostics", [])
+    out = []
+    for item in items:
+        location = item.get("location") or {}
+        path = location.get("path")
+        if isinstance(path, dict):
+            path = path.get("file") or path.get("path")
+        if not path or not owns(path, BIOME_EXT):
+            continue
+        rule = (item.get("category") or "?").split("/")[-1]
+        message = item.get("message")
+        if not isinstance(message, str):
+            message = camel_prompt(rule) or "fix this finding"
+        text = phrase(BIOME_RULES, rule, message)
+        if text is message and rule not in BIOME_RULES:
+            text = camel_prompt(rule) or message
+        out.append((resolve(path, roots), location.get("start", {}).get("line", 1),
+                    text, rule, False))
+    return out, []
+
+
+TOOLS = {
+    "ruff": ruff_findings,
+    "mypy": mypy_findings,
+    "oxlint": oxlint_findings,
+    "biome": biome_findings,
+}
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="lintp",
+        description="Every applicable linter, as short imperative prompts — one line per finding.",
+    )
+    parser.add_argument("paths", nargs="*", default=["."], help="files or directories (default: .)")
+    parser.add_argument("--fix", action="store_true", help="apply the safe autofixes first")
+    parser.add_argument("--codes", action="store_true", help="show the rule name on each line")
+    parser.add_argument("--strict", action="store_true",
+                        help="add oxlint's pedantic and style rules")
+    parser.add_argument("--tools", default=",".join(TOOLS),
+                        help=f"comma-separated subset of: {','.join(TOOLS)}")
+    opts = parser.parse_args()
+    paths = opts.paths or ["."]
+
+    wanted = [t.strip() for t in opts.tools.split(",") if t.strip()]
+    unknown = [t for t in wanted if t not in TOOLS]
+    if unknown:
+        parser.error(f"unknown tool(s): {', '.join(unknown)}")
+
+    findings, errors = [], []
+    for name in wanted:
+        found, err = TOOLS[name](paths, opts)
+        findings += found or []
+        errors += err
+
+    for err in errors:
+        print(f"lintp: {err}", file=sys.stderr)
+    if errors and not findings:
+        return 2
+
+    if not findings:
+        print("clean")
+        return 0
+
+    findings.sort(key=lambda f: (f[0], f[1]))
+    width = max(len(f"{f[0]}:{f[1]}") for f in findings)
+    fixable = 0
+    for path, line, text, code, can_fix in findings:
+        suffix = f"  [{code}]" if opts.codes else ""
+        print(f"{f'{path}:{line}'.ljust(width)}  {text}{suffix}")
+        fixable += can_fix
+
+    tail = f"\n{len(findings)} finding{'s' * (len(findings) != 1)}"
+    if fixable and not opts.fix:
+        tail += f", {fixable} auto-fixable (lintp --fix)"
+    if errors:
+        tail += " — plus a linter error above"
+    print(tail)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

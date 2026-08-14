@@ -1,0 +1,47 @@
+#!/bin/sh
+# biome shim: one line per finding for the diagnostic subcommands.
+#
+# biome's `concise` reporter is exactly one line per finding, but it is CLI-only — there
+# is no environment variable and no config key for it. So inject it for lint/check/ci and
+# leave format, migrate, init and the rest untouched. Pass any --reporter yourself and
+# this steps aside. exec preserves biome's exit code.
+set -e
+
+# The real biome is the next one on PATH that is not this shim.
+self_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+real=''
+saved_ifs=$IFS
+IFS=:
+for dir in $PATH; do
+    [ -n "$dir" ] || dir=.
+    case $(CDPATH= cd -- "$dir" 2>/dev/null && pwd -P) in
+        "$self_dir") continue ;;
+    esac
+    if [ -x "$dir/biome" ] && [ ! -d "$dir/biome" ]; then
+        real="$dir/biome"
+        break
+    fi
+done
+IFS=$saved_ifs
+
+if [ -z "$real" ]; then
+    echo "biome shim: no real biome found on PATH (install it with: npm i -g @biomejs/biome)" >&2
+    exit 127
+fi
+
+[ $# -eq 0 ] && exec "$real"
+
+case "$1" in
+    lint | check | ci)
+        for arg in "$@"; do
+            case "$arg" in
+                --reporter*) exec "$real" "$@" ;;
+            esac
+        done
+        sub=$1
+        shift
+        exec "$real" "$sub" --reporter=concise "$@"
+        ;;
+esac
+
+exec "$real" "$@"

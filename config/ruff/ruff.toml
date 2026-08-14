@@ -1,0 +1,5 @@
+# User-level ruff config: fallback for processes that inherit no shell env.
+# The primary mechanism is RUFF_OUTPUT_FORMAT=concise (set in ~/.profile,
+# ~/.config/fish/config.fish and ~/.claude/settings.json), because this file is
+# ignored whenever ruff finds a project-level config.
+output-format = "concise"

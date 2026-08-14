@@ -1,0 +1,53 @@
+#!/bin/sh
+# mypy shim: one line per error, and a cache that stays out of your projects.
+#
+# WHY A SHIM. mypy has no environment variable for output flags, and a project-level
+# mypy.ini or pyproject.toml replaces a user-level config wholesale — so the only thing
+# that reliably reaches every invocation is a command-line flag. Later flags win in
+# mypy's parser, so `mypy --error-summary ...` still restores the summary when you want it.
+#
+# WHY NOT ONE SHARED CACHE. Setting a single MYPY_CACHE_DIR looks tidy and is a trap: two
+# projects that each contain a module of the same name (utils.py, main.py, conftest.py)
+# collide in one cache, and mypy then reports a finding against the *other* project's
+# file. An agent following that path edits a file in the wrong repo. So: one cache per
+# working directory, kept outside the project — which also avoids .mypy_cache/ appearing
+# everywhere, and mypy's crash when the working directory is not writable.
+#
+# Does not cover dmypy — pass --no-error-summary yourself there.
+set -e
+
+# The real mypy is the next one on PATH that is not this shim.
+self_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+real=''
+saved_ifs=$IFS
+IFS=:
+for dir in $PATH; do
+    [ -n "$dir" ] || dir=.
+    case $(CDPATH= cd -- "$dir" 2>/dev/null && pwd -P) in
+        "$self_dir") continue ;;
+    esac
+    if [ -x "$dir/mypy" ] && [ ! -d "$dir/mypy" ]; then
+        real="$dir/mypy"
+        break
+    fi
+done
+IFS=$saved_ifs
+
+if [ -z "$real" ]; then
+    echo "mypy shim: no real mypy found on PATH (install it with: uv tool install mypy)" >&2
+    exit 127
+fi
+
+if [ -z "${MYPY_CACHE_DIR:-}" ]; then
+    # md5sum on Linux, md5 on macOS, cksum as the POSIX fallback. If none produces a key
+    # we simply leave MYPY_CACHE_DIR unset: mypy then writes .mypy_cache/ into the project
+    # as it always did, which is untidy but still correct.
+    key=$(printf '%s' "$PWD" | { md5sum 2>/dev/null || md5 2>/dev/null || cksum; } \
+          | tr -dc '0-9a-f' | cut -c1-16)
+    if [ -n "$key" ]; then
+        MYPY_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/mypy/$key"
+        export MYPY_CACHE_DIR
+    fi
+fi
+
+exec "$real" --no-error-summary "$@"
