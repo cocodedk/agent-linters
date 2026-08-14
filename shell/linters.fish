@@ -14,5 +14,7 @@ else
     set -gx RUFF_CACHE_DIR $HOME/.cache/ruff
 end
 
-# fish_add_path prepends and is idempotent, so the shims land ahead of the real binaries.
+# fish_add_path prepends and is idempotent. ~/.local/bin holds lintp; the shims must land
+# ahead of the real binaries, so add them last.
+fish_add_path -g $HOME/.local/bin
 fish_add_path -g $HOME/.local/shims

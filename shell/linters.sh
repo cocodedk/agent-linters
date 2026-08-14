@@ -16,6 +16,13 @@ export RUFF_OUTPUT_FORMAT=concise
 # cache: ruff keys entries by absolute path, so same-named modules cannot collide.
 export RUFF_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/ruff"
 
+# ~/.local/bin holds lintp. Most distros add it in ~/.profile, but not all, and a profile
+# this installer had to create from scratch will not have it at all.
+case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
 # Shims must precede the real binaries (see shims/ for why each exists).
 case ":$PATH:" in
     *":$HOME/.local/shims:"*) ;;
