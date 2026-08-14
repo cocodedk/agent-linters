@@ -21,7 +21,7 @@ jobs:
     name: shellcheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
 
       - name: install shellcheck if missing
         run: |
@@ -67,12 +67,12 @@ jobs:
     name: ruff + mypy (bin/lintp)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
 
       # No cache: pip — this repo has no requirements.txt/pyproject.toml for
       # setup-python to hash into a cache key, and it errors out without one. We're
       # only installing two wheels (ruff, mypy), so a cache buys nothing anyway.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
@@ -91,7 +91,7 @@ jobs:
     name: install.sh round trip
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
 
       - name: install into a throwaway HOME
         run: |
@@ -176,12 +176,12 @@ jobs:
     name: lintp smoke test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
 
       # No cache: pip — this repo has no requirements.txt/pyproject.toml for
       # setup-python to hash into a cache key, and it errors out without one. We're
       # only installing two wheels (ruff, mypy), so a cache buys nothing anyway.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
