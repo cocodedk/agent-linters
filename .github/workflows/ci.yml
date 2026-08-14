@@ -72,7 +72,7 @@ jobs:
       # No cache: pip — this repo has no requirements.txt/pyproject.toml for
       # setup-python to hash into a cache key, and it errors out without one. We're
       # only installing two wheels (ruff, mypy), so a cache buys nothing anyway.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
@@ -181,7 +181,7 @@ jobs:
       # No cache: pip — this repo has no requirements.txt/pyproject.toml for
       # setup-python to hash into a cache key, and it errors out without one. We're
       # only installing two wheels (ruff, mypy), so a cache buys nothing anyway.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
