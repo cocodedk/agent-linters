@@ -9,8 +9,8 @@ instruction instead of a screenful of diagnostics.
 
 ## Website
 
-- [English](https://cocodedk.github.io/agent-linters/)
-- [فارسی (Persian)](https://cocodedk.github.io/agent-linters/fa/)
+- [English](https://agent-linters.cocode.dk/)
+- [فارسی (Persian)](https://agent-linters.cocode.dk/fa/)
 
 ```
 $ lintp src/
