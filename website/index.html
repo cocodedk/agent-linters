@@ -38,6 +38,8 @@
 <meta name="twitter:image:alt" content="Two rulers on bone paper: a long ochre one marked 31 lines, a short blue one marked 5 lines, beside the name agent-linters." />
 
 <link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="https://brand.cocode.dk/v1.css">
+<script type="module" src="https://brand.cocode.dk/v1.js"></script>
 
 <script type="application/ld+json">
 {
@@ -74,32 +76,12 @@
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<header class="site-head">
-  <div class="wrap head-in">
-    <a class="brand" href="./">
-      <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-        <rect width="32" height="32" rx="6" fill="#f4f2ed" />
-        <g fill="#c98a1e">
-          <rect x="6" y="6" width="20" height="3" rx="1.5" />
-          <rect x="6" y="12" width="15" height="3" rx="1.5" />
-          <rect x="6" y="18" width="9" height="3" rx="1.5" />
-        </g>
-        <rect x="6" y="24" width="20" height="4" rx="2" fill="#2b3ac7" />
-      </svg>
-      agent-linters
-    </a>
-    <nav aria-label="Sections">
-      <ul class="nav">
-        <li><a href="#compare">Compare</a></li>
-        <li><a href="#coverage">Coverage</a></li>
-        <li><a href="#install">Install</a></li>
-        <li><a href="#traps">Traps</a></li>
-        <li><a href="https://github.com/cocodedk/agent-linters">GitHub</a></li>
-        <li><a href="fa/" class="lang-switch" lang="fa" hreflang="fa">فارسی</a></li>
-      </ul>
-    </nav>
-  </div>
-</header>
+<!-- The cocode.dk family frame. Without JavaScript its children show instead: a way home
+     and the language link. -->
+<cocode-head project="agent-linters" accent="#2b3ac7" on-accent="#f4f2ed">
+  <a href="https://cocode.dk">cocode.dk</a>
+  <a href="fa/" hreflang="fa" lang="fa">فارسی</a>
+</cocode-head>
 
 <main id="main">
 
@@ -332,10 +314,13 @@ src/api.py:11  return int, not str
 
 <footer>
   <div class="wrap">
-    <p>Built by <a href="https://cocode.dk" target="_blank" rel="noreferrer">Cocode</a>. Source on <a href="https://github.com/cocodedk/agent-linters">GitHub</a>.</p>
-    <p>MIT &nbsp;|&nbsp; © 2026 <a href="https://cocode.dk" target="_blank" rel="noreferrer">Cocode</a> &nbsp;|&nbsp; Created by <a href="https://linkedin.com/in/babakbandpey" target="_blank" rel="noreferrer">Babak Bandpey</a></p>
+    <p>MIT</p>
   </div>
 </footer>
+
+<cocode-foot repo="cocodedk/agent-linters">
+  <a href="https://cocode.dk">cocode.dk</a>
+</cocode-foot>
 
 </body>
 </html>
