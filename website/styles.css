@@ -141,6 +141,10 @@ code {
   padding-inline: var(--pad);
 }
 
+/* The cocode.dk frame lines up with the .wrap column above; --pad is constant across every
+   breakpoint in this file, so no media override is needed here. */
+cocode-head, cocode-foot { --cocode-max: var(--wide); --cocode-gutter: var(--pad); }
+
 /* Visually hidden by clipping rather than by off-screen positioning: an
    off-screen-left element becomes off-screen-right under dir="rtl" and adds
    ten thousand pixels of horizontal scroll. */
@@ -182,85 +186,6 @@ body[dir="rtl"] .eyebrow {
   letter-spacing: 0;
   text-transform: none;
   font-size: 0.85rem;
-}
-
-/* ---------- header ---------- */
-
-.site-head {
-  border-block-end: 1px solid var(--rule);
-  background: var(--bg);
-}
-
-.head-in {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 1rem;
-  min-height: 64px;
-  padding-block: 0.75rem;
-}
-
-.brand {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  gap: 0.6rem;
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: -0.02em;
-  color: var(--fg);
-  text-decoration: none;
-  margin-inline-end: auto;
-}
-
-.brand svg {
-  display: block;
-  flex: none;
-}
-
-.nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 0.4rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.nav a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding-inline: 0.55rem;
-  font-family: var(--mono);
-  font-size: 0.82rem;
-  color: var(--fg-dim);
-  text-decoration: none;
-}
-
-body[dir="rtl"] .nav a {
-  font-family: var(--fa);
-  font-size: 0.95rem;
-}
-
-.nav a:hover {
-  color: var(--ink-blue);
-}
-
-/* Scoped through .nav rather than carrying !important: the switcher lives inside the nav,
-   so `.nav a` (0,1,1) outranks a bare `.lang-switch` (0,1,0) and its colour and padding
-   lost. `.nav a.lang-switch` (0,2,1) wins on specificity instead of by force. */
-.nav a.lang-switch {
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  color: var(--fg);
-  padding-inline: 0.8rem;
-}
-
-.nav a.lang-switch:hover {
-  border-color: var(--ink-blue);
 }
 
 /* ---------- gutter spine ---------- */
@@ -439,8 +364,7 @@ body[dir="rtl"] .btn {
    terminal panels have to scroll inside themselves instead. */
 .compare > *,
 .steps > li,
-.traps > li,
-.head-in > * {
+.traps > li {
   min-width: 0;
 }
 
@@ -712,18 +636,6 @@ footer p {
    the footer block to satisfy the ordering check would be worse. */
 footer p:last-child {
   margin-block-end: 0;
-}
-
-footer a {
-  color: var(--fg);
-}
-
-/* biome-ignore lint/style/noDescendingSpecificity: compared against a
-   .aside-note rule in a different scope — the two can never match the same
-   element, so there is no cascade conflict, and moving footer rules away from
-   the footer block to satisfy the ordering check would be worse. */
-footer a:hover {
-  color: var(--ink-blue);
 }
 
 body[dir="rtl"] footer p {
